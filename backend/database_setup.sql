@@ -57,3 +57,22 @@ INSERT IGNORE INTO subjects (name) VALUES
 -- Default admin
 INSERT IGNORE INTO teacher_whitelist (email, campus, is_admin) VALUES 
     ('rollin.furio@sorsu.edu.ph', 'Bulan', 1);
+
+-- Audit logs table (tracks score changes)
+CREATE TABLE IF NOT EXISTS audit_logs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    record_id INT,
+    action_type VARCHAR(50),
+    old_score INT,
+    new_score INT,
+    changed_by VARCHAR(100),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (record_id) REFERENCES records(id) ON DELETE CASCADE
+);
+
+ALTER TABLE audit_logs 
+DROP FOREIGN KEY audit_logs_ibfk_1;
+
+ALTER TABLE audit_logs
+ADD CONSTRAINT audit_logs_ibfk_1 
+FOREIGN KEY (record_id) REFERENCES records(id) ON DELETE CASCADE;

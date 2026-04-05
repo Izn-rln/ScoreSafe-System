@@ -112,10 +112,13 @@ router.post('/profile/update', async (req, res) => {
 router.delete('/user/:id', async (req, res) => {
     const { id } = req.params;
     try {
+        await db.execute('DELETE FROM records WHERE student_id = ?', [id]);
+        await db.execute('UPDATE records SET recorded_by_id = NULL WHERE recorded_by_id = ?', [id]);
         await db.execute('DELETE FROM users WHERE id = ?', [id]);
-        res.json({ message: "User deleted successfully" });
+        res.json({ message: "Student removed successfully." });
     } catch (err) {
-        res.status(500).json({ error: "Cannot delete user with existing academic records." });
+        console.error("Delete error:", err);
+        res.status(500).json({ error: err.message });
     }
 });
 
