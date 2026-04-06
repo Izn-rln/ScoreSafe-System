@@ -4,3 +4,4 @@ node_modules/
 uploads/
 .vscode/
 *.env
+backend/src/firebase-admin.json
