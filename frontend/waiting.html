@@ -33,7 +33,7 @@
     const email = localStorage.getItem('username');
     if (!email) return;
 
-    const res = await fetch(`http://127.0.0.1:3000/api/auth/google-login-status?email=${email}`);
+    const res = await fetch(`${API_BASE_URL}/api/auth/google-login-status?email=${email}`);
     const data = await res.json();
 
     if (data.is_approved === 1) {

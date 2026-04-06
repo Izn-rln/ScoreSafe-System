@@ -964,6 +964,18 @@ function setupSearchableDropdown(inputId, selectId) {
     });
 }   
 
+function validateScore(input) {
+    const max = parseInt(document.getElementById('totalItemsInput').value) || 0;
+    if (parseInt(input.value) > max && max > 0) {
+        input.setCustomValidity(`Score cannot exceed total items (${max})`);
+        input.reportValidity();
+        input.value = max;
+    } else {
+        input.setCustomValidity('');
+    }
+}
+
+window.validateScore = validateScore;
 window.editScore = editScore;
 window.lockScore = lockScore;
 window.displayProfileInfo = displayProfileInfo;
