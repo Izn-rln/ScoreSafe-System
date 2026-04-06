@@ -5,8 +5,6 @@ const admin = require("firebase-admin");
 const path = require('path');
 const multer = require('multer');
 
-const serviceAccount = require(path.join(__dirname, '../firebase-admin.json'));
-
 if (!admin.apps.length) {
     admin.initializeApp({
         credential: admin.credential.cert({
