@@ -134,32 +134,9 @@ router.post('/add-subject', async (req, res) => {
 router.delete('/remove-faculty', async (req, res) => {
     const { email, requesterEmail } = req.body;
     try {
-        const [requester] = await db.execute(
-            "SELECT is_admin FROM teacher_whitelist WHERE email = ?", [requesterEmail]
-        );
-        if (requester.length === 0) {
-            return res.status(403).json({ error: "Access denied." });
-        }
-        
-        const [target] = await db.execute(
-            "SELECT is_admin FROM teacher_whitelist WHERE email = ?", [email]
-        );
-
-        if (!requester[0].is_admin && target[0]?.is_admin) {
-            return res.status(403).json({ error: "Teachers cannot remove admins." });
-        }
-
-        // 1. Remove from whitelist
         await db.execute("DELETE FROM teacher_whitelist WHERE email = ?", [email]);
-
-        // 2. Demote in users table so they can't re-enter teacher dashboard
-        await db.execute(
-            "UPDATE users SET role = 'student', is_approved = 0 WHERE username = ?", [email]
-        );
-
-        res.json({ message: "Faculty removed and demoted successfully." });
+        res.json({ message: "Faculty member removed from whitelist." });
     } catch (err) {
-        console.error(err);
         res.status(500).json({ error: "Failed to remove faculty." });
     }
 });
