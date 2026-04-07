@@ -28,27 +28,6 @@
         </button>
     </div>
 
-    <script>
-        setInterval(async () => {
-    const email = localStorage.getItem('username');
-    if (!email) return;
-
-    const res = await fetch(`${API_BASE_URL}/api/auth/google-login-status?email=${email}`);
-    const data = await res.json();
-
-    if (data.is_approved === 1) {
-        window.location.href = 'student/dashboard.html';
-    }
-}, 30000);
-
-        function logout() {
-            localStorage.clear();
-            sessionStorage.clear();
-            window.location.href = 'signin.html';
-        }
-    </script>
-<script src="js/config.js"></script>
-
 <script>
     setInterval(async () => {
         const email = localStorage.getItem('username');
@@ -68,5 +47,6 @@
         window.location.href = 'signin.html';
     }
 </script>
+<script src="js/config.js"></script>
 </body>
 </html>
