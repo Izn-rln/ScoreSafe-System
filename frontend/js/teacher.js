@@ -4,7 +4,7 @@ document.querySelectorAll('.logout-btn').forEach(btn => {
         const confirmLogout = confirm("Are you sure you want to sign out? Any unsaved changes may be lost.");
         if (confirmLogout) {
             localStorage.clear();
-            window.location.href = "../signin.html"; 
+            window.location.href = "../index.html"; 
         }
     });
 });

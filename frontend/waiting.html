@@ -28,6 +28,8 @@
         </button>
     </div>
 
+    <script src="js/config.js"></script>
+
 <script>
     setInterval(async () => {
         const email = localStorage.getItem('username');
@@ -44,9 +46,8 @@
     function logout() {
         localStorage.clear();
         sessionStorage.clear();
-        window.location.href = 'signin.html';
+        window.location.href = 'index.html';
     }
 </script>
-<script src="js/config.js"></script>
 </body>
 </html>

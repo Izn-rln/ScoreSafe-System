@@ -275,7 +275,7 @@ document.querySelectorAll('.logout-btn').forEach(button => {
         e.preventDefault();
         if (confirm("Sign out?")) {
             localStorage.clear();
-            window.location.href = '../signin.html';
+            window.location.href = '../index.html';
         }
     });
 });

@@ -4,7 +4,7 @@
     const path = window.location.pathname;
 
     if (!username || !role) {
-        window.location.href = '../signin.html';
+        window.location.href = '../index.html';
         return;
     }
 

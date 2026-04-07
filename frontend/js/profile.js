@@ -2,7 +2,7 @@ async function loadProfile() {
     const username = localStorage.getItem('username'); 
     
     if (!username) {
-        window.location.href = '../signin.html';
+        window.location.href = '../index.html';
         return;
     }
 
