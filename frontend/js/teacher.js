@@ -328,26 +328,6 @@ async function declineFacultyRequest(email) {
     } catch (err) { alert("Connection error."); }
 }
 
-async function verifyTeacherAccess() {
-    const username = localStorage.getItem('username');
-    if (!username) return;
-
-    try {
-        // We check the profile directly from the server
-        const res = await fetch(`${API_BASE_URL}/api/auth/profile?username=${encodeURIComponent(username)}`);
-        const profile = await res.json();
-
-        // If the server says they aren't a teacher anymore, kick them out!
-        if (profile.role !== 'teacher') {
-            alert("Access Revoked: Your faculty authorization has ended.");
-            localStorage.clear();
-            window.location.href = '../index.html';
-        }
-    } catch (e) {
-        console.log("Auth check skipped: ", e);
-    }
-}
-
 const addTeacherForm = document.getElementById('addTeacherForm');
 if (addTeacherForm) {
     addTeacherForm.addEventListener('submit', async (e) => {
@@ -525,7 +505,6 @@ async function deleteSubject(id) {
 window.deleteSubject = deleteSubject;
 
 window.addEventListener('load', () => {
-    verifyTeacherAccess();
     if (document.getElementById('teacherProfileForm')) {
         displayProfileInfo();
         document.getElementById('saveTeacherProfile')?.addEventListener('click', saveProfileChanges);
