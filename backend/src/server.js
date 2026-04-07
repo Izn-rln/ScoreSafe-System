@@ -19,18 +19,8 @@ app.use((req, res, next) => {
     next();
 });
 
-const allowedOrigins = process.env.ALLOWED_ORIGINS
-    ? process.env.ALLOWED_ORIGINS.split(',')
-    : ['http://localhost:3000', 'http://127.0.0.1:3000'];
-
 app.use(cors({
-    origin: (origin, callback) => {
-        if (!origin || allowedOrigins.includes(origin)) {
-            callback(null, true);
-        } else {
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
+    origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -43,7 +33,7 @@ app.use('/uploads', express.static(uploadDir));
 app.use('/api/auth', authRoutes);
 app.use('/api/scores', scoreRoutes); 
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server is running on http://127.0.0.1:${PORT}`);
+    console.log(`Server is running on port ${PORT}`);
 });
