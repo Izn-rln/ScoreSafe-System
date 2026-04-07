@@ -99,33 +99,41 @@ async function displayStudentProfile() {
     const email = localStorage.getItem('username');
     console.log("Loading profile for:", email);
 
+    // We check for the form, but if it's null, we'll try to find the fields directly
     const profileForm = document.getElementById('studentProfileForm');
-    console.log("Form found:", profileForm); 
-    if (!email || !profileForm) return;
+    if (!email) return;
 
     try {
         const res = await fetch(`${API_BASE_URL}/api/auth/profile?username=${email}`);
         const user = await res.json();
         console.log("User data:", user); 
+        
         if (res.ok) {
-            const nameField = document.getElementById('studentFullName');
-            const emailField = document.getElementById('studentEmail');
-            const bioField = document.getElementById('studentBio');
-            
-            console.log("Fields:", nameField, emailField, bioField); // ✅ Add this
+            // Use a small delay to ensure the DOM elements are fully ready to accept values
+            setTimeout(() => {
+                const nameField = document.getElementById('studentFullName');
+                const emailField = document.getElementById('studentEmail');
+                const bioField = document.getElementById('studentBio');
+                const avatarWrapper = document.getElementById('studentAvatarPreview');
+                
+                console.log("Fields found in DOM:", { nameField, emailField, bioField });
 
-            if (nameField) nameField.value = user.full_name || '';
-            if (emailField) emailField.value = user.username || '';
-            if (bioField) bioField.value = user.bio || '';
+                if (nameField) nameField.value = user.full_name || '';
+                if (emailField) emailField.value = user.username || '';
+                if (bioField) bioField.value = user.bio || '';
 
-            const avatarWrapper = document.getElementById('studentAvatarPreview');
-            if (avatarWrapper && user.profile_photo) {
-                const src = user.profile_photo.startsWith('http') ? 
-                            user.profile_photo.replace(/=s\d+-c/g, '=s0') : 
-                            `${API_BASE_URL}/uploads/${user.profile_photo}`;
-                avatarWrapper.innerHTML = `<img src="${src}" referrerpolicy="no-referrer" 
-                    style="width:100%; height:100%; object-fit:cover; border-radius:12px;">`;
-            }
+                if (avatarWrapper && user.profile_photo) {
+                    const src = user.profile_photo.startsWith('http') ? 
+                                user.profile_photo.replace(/=s\d+-c/g, '=s0') : 
+                                `${API_BASE_URL}/uploads/${user.profile_photo}`;
+                    
+                    avatarWrapper.innerHTML = `<img src="${src}" referrerpolicy="no-referrer" 
+                        style="width:100%; height:100%; object-fit:cover; border-radius:12px;">`;
+                } else if (avatarWrapper) {
+                    // Added a fallback icon if no photo exists, so it's not a red square
+                    avatarWrapper.innerHTML = `<i class="fas fa-user-circle" style="font-size: 8rem; color: #ccc;"></i>`;
+                }
+            }, 100); 
         }
     } catch (err) { 
         console.error("Profile load failed", err); 
