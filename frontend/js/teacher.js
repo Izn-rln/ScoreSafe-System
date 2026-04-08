@@ -430,33 +430,50 @@ const authForm = document.getElementById('authorizeStudentForm');
 if (authForm) {
     authForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+
+        // 1. Capture the values
         const email = document.getElementById('authEmail').value;
         const tempName = document.getElementById('authName').value;
-        const campus = document.getElementById('authCampus').value;
+        
+        // 2. Safely get the campus value (handles null if element is missing)
+        const campusElement = document.getElementById('authCampus');
+        const campus = campusElement ? campusElement.value : "N/A";
 
+        // 3. Validation
         if (email === localStorage.getItem('username')) {
             alert("Error: You cannot authorize yourself as a student.");
             return;
         }
 
+        if (!campus || campus === "") {
+            alert("Please select a campus before authorizing.");
+            return;
+        }
+
         try {
+            // 4. Send the request
             const res = await fetch(`${API_BASE_URL}/api/auth/authorize-student`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, fullName: tempName, campus })
+                body: JSON.stringify({ 
+                    email: email, 
+                    fullName: tempName, 
+                    campus: campus // Correctly defined now
+                })
             });
 
+            const data = await res.json();
+
             if (res.ok) {
-                const data = await res.json();
-                alert(data.message || "Student authorized! They can now log in using their Sorsu email.");
+                alert(data.message || "Student authorized successfully!");
                 authForm.reset();
-                renderEnrollmentTable(); 
+                renderEnrollmentTable(); // Refresh the directory list
             } else {
-                const err = await res.json();
-                alert(err.error);
+                alert(data.error || "Failed to authorize student.");
             }
         } catch (err) {
-            alert("Connection error.");
+            console.error("Auth error:", err);
+            alert("Connection error. Please check your internet or backend status.");
         }
     });
 }
