@@ -354,31 +354,41 @@ if (addTeacherForm) {
 const recordForm = document.getElementById('recordScoreForm');
 if (recordForm) {
     recordForm.addEventListener('submit', async (e) => {
-        e.preventDefault(); 
+        e.preventDefault();
 
         const scoreInput = document.getElementById('score');
         const totalItemsInput = document.getElementById('totalItemsInput');
         const studentId = document.getElementById('studentSelect').value;
         const subjectId = document.getElementById('subjectSelect').value;
-        const teacherId = localStorage.getItem('userId'); 
+        const teacherId = localStorage.getItem('userId');
+
+        const score = parseInt(scoreInput.value);
+        const totalItems = parseInt(totalItemsInput.value);
 
         if (!teacherId) {
             alert("Error: Teacher session not found. Please log in again.");
             return;
         }
-
         if (!studentId) {
             alert("Please select a student.");
             return;
         }
-
         if (!subjectId) {
             alert("Please select a subject.");
             return;
         }
-
-        if (parseInt(scoreInput.value) > parseInt(totalItemsInput.value)) {
-            alert("The Total Score cannot be greater than the Total Items.");
+        if (isNaN(score) || score < 0) {
+            alert("Please enter a valid score.");
+            return;
+        }
+        if (isNaN(totalItems) || totalItems < 1) {
+            alert("Please enter a valid total items number.");
+            return;
+        }
+        // FIX: Hard block — do not allow submission if score > total
+        if (score > totalItems) {
+            alert(`Invalid Score: ${score} cannot be greater than Total Items (${totalItems}).`);
+            scoreInput.focus();
             return;
         }
 
@@ -386,10 +396,10 @@ if (recordForm) {
         formData.append('recorded_by_id', teacherId);
         formData.append('student_id', studentId);
         formData.append('subject_id', subjectId);
-        formData.append('score', scoreInput.value);
+        formData.append('score', score);
         formData.append('category', document.getElementById('categorySelect').value);
-        formData.append('total_items', totalItemsInput.value || 0);
-        
+        formData.append('total_items', totalItems);
+
         const fileInput = document.getElementById('paperFile');
         if (fileInput.files[0]) formData.append('paper_image', fileInput.files[0]);
 
@@ -398,22 +408,20 @@ if (recordForm) {
                 method: 'POST',
                 body: formData
             });
-            
             const result = await response.json();
-
             if (response.ok) {
                 alert("Score Recorded! It will be visible to the student once finalized.");
                 recordForm.reset();
                 document.getElementById('studentSearch').value = "";
                 document.getElementById('subjectSearch').value = "";
-                renderScoresTables(); 
+                renderScoresTables();
                 updateDashboardStats();
             } else {
                 alert("Error: " + (result.error || "Failed to save record"));
             }
-        } catch (err) { 
+        } catch (err) {
             console.error("Submission error:", err);
-            alert("Server connection error."); 
+            alert("Server connection error.");
         }
     });
 }
@@ -966,15 +974,66 @@ function setupSearchableDropdown(inputId, selectId) {
 
 function validateScore(input) {
     const max = parseInt(document.getElementById('totalItemsInput').value) || 0;
-    if (parseInt(input.value) > max && max > 0) {
-        input.setCustomValidity(`Score cannot exceed total items (${max})`);
-        input.reportValidity();
-        input.value = max;
+    const val = parseInt(input.value) || 0;
+    if (max > 0 && val > max) {
+        input.style.borderColor = '#dc3545';
+        input.title = `Score cannot exceed ${max}`;
     } else {
-        input.setCustomValidity('');
+        input.style.borderColor = '';
+        input.title = '';
     }
 }
 
+async function viewPerformance(email) {
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/scores/get-records?email=${encodeURIComponent(email)}`);
+        const records = await res.json();
+        const finalized = records.filter(r => r.is_finalized === 1);
+
+        if (finalized.length === 0) {
+            alert(`No finalized records found for:\n${email}`);
+            return;
+        }
+
+        const totalEarned = finalized.reduce((s, r) => s + Number(r.score), 0);
+        const totalPossible = finalized.reduce((s, r) => s + Number(r.total_items || 0), 0);
+        const avg = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFixed(1) : '0.0';
+        const subjects = [...new Set(finalized.map(r => r.subject_name))];
+        const bySubject = subjects.map(sub => {
+            const recs = finalized.filter(r => r.subject_name === sub);
+            const earned = recs.reduce((s, r) => s + Number(r.score), 0);
+            const possible = recs.reduce((s, r) => s + Number(r.total_items || 0), 0);
+            const pct = possible > 0 ? ((earned / possible) * 100).toFixed(1) : '0.0';
+            return `  • ${sub}: ${earned}/${possible} (${pct}%)`;
+        }).join('\n');
+
+        alert(
+            `Performance Summary\n` +
+            `Student: ${email}\n` +
+            `─────────────────────\n` +
+            `Total Records: ${finalized.length}\n` +
+            `Overall Average: ${avg}%\n\n` +
+            `By Subject:\n${bySubject}`
+        );
+    } catch (err) {
+        alert("Could not load performance data. Please try again.");
+        console.error(err);
+    }
+}
+
+// Hamburger menu toggle
+document.getElementById('hamburger')?.addEventListener('click', () => {
+    document.querySelector('nav').classList.toggle('active');
+});
+
+// Close nav when a link is clicked (mobile)
+document.querySelectorAll('nav a').forEach(link => {
+    link.addEventListener('click', () => {
+        document.querySelector('nav').classList.remove('active');
+    });
+});
+
+window.viewPerformance = viewPerformance;
 window.validateScore = validateScore;
 window.editScore = editScore;
 window.lockScore = lockScore;

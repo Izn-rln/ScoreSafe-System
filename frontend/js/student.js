@@ -288,4 +288,16 @@ document.querySelectorAll('.logout-btn').forEach(button => {
     });
 });
 
+// Mobile Hamburger Toggle
+document.getElementById('hamburger')?.addEventListener('click', () => {
+    document.querySelector('nav').classList.toggle('active');
+});
+
+// Close menu when clicking a link
+document.querySelectorAll('nav a').forEach(link => {
+    link.addEventListener('click', () => {
+        document.querySelector('nav').classList.remove('active');
+    });
+});
+
 window.applyFilter = applyFilter;

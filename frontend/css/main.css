@@ -1572,6 +1572,231 @@ button.btn {
 }
 
 /* ========================
+   Mobile Fixes
+======================== */
+
+/* Hamburger toggle */
+@media (max-width: 768px) {
+    .hamburger {
+        display: block;
+        position: absolute;
+        right: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 1001;
+        cursor: pointer;
+        font-size: 26px;
+        color: white;
+    }
+
+    nav {
+        display: none;
+    }
+
+    nav.active {
+        display: flex;
+        flex-direction: column;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(128, 0, 0, 0.97);
+        z-index: 1000;
+        padding: 80px 30px 30px;
+        gap: 8px;
+        align-items: flex-start;
+        overflow-y: auto;
+    }
+
+    nav.active a {
+        margin-left: 0;
+        font-size: 18px;
+        padding: 12px 0;
+        width: 100%;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+        color: white;
+    }
+
+    nav.active a.active {
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .header-actions {
+        display: none;
+    }
+
+    .mobile-only {
+        display: flex !important;
+    }
+}
+
+/* Stats grid on mobile */
+@media (max-width: 600px) {
+    .stats-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    section[style*="grid-template-columns: 1fr 1fr 1fr"],
+    section[style*="grid-template-columns: repeat(3"] {
+        grid-template-columns: 1fr !important;
+    }
+
+    .stat-card {
+        margin: 0 !important;
+    }
+}
+
+/* Table horizontal scroll on mobile */
+@media (max-width: 768px) {
+    .table-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .table-wrapper table {
+        min-width: 600px;
+    }
+
+    .table-header {
+        flex-direction: column;
+        gap: 12px;
+        padding: 16px !important;
+    }
+
+    .table-header .search-container {
+        width: 100% !important;
+        margin-left: 0 !important;
+    }
+
+    .table-header .search-container input {
+        width: 100%;
+    }
+}
+
+/* Forms on mobile */
+@media (max-width: 600px) {
+    .form-grid[style*="grid-template-columns: 1fr 1fr"] {
+        grid-template-columns: 1fr !important;
+    }
+
+    .form-grid[style*="grid-template-columns: 1fr 1fr 1fr"] {
+        grid-template-columns: 1fr !important;
+    }
+
+    .card {
+        padding: 20px !important;
+    }
+
+    .profile-card {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .profile-avatar {
+        flex: none !important;
+        width: 150px;
+    }
+
+    .avatar-wrapper {
+        width: 150px !important;
+        height: 150px !important;
+    }
+
+    .profile-actions {
+        flex-direction: column;
+    }
+
+    .profile-actions .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    button.btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    /* Action buttons in tables — stack them */
+    td div[style*="display: flex"] {
+        flex-wrap: wrap;
+        gap: 6px !important;
+    }
+
+    td div[style*="display: flex"] button {
+        flex: 1;
+        min-width: 80px;
+        font-size: 0.8rem !important;
+    }
+}
+
+/* Auth card on mobile */
+@media (max-width: 500px) {
+    .auth-card {
+        padding: 24px 18px;
+        margin: 0 10px;
+    }
+
+    .role-selection-grid {
+        flex-direction: column;
+    }
+}
+
+/* Topbar padding on mobile */
+@media (max-width: 768px) {
+    .nav-wrapper {
+        padding: 0 16px;
+        justify-content: flex-start;
+    }
+
+    .logo {
+        position: static;
+        flex: 1;
+    }
+
+    .topbar {
+        padding: 14px 0;
+    }
+}
+
+/* Container padding on mobile */
+@media (max-width: 600px) {
+    .container {
+        padding: 16px 12px;
+        width: 100%;
+    }
+}
+
+/* Modal on mobile */
+@media (max-width: 500px) {
+    .modal-overlay {
+        margin-left: 0;
+        padding: 10px;
+    }
+
+    .modal {
+        padding: 16px;
+    }
+}
+
+/* Filter menu positioning fix on mobile */
+@media (max-width: 500px) {
+    .filter-menu {
+        right: auto;
+        left: 0;
+        width: 180px;
+    }
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-top: 20px;
+    margin-bottom: 24px;
+}
+
+/* ========================
    Modal (Sign out confirmation)
 ======================== */
 .modal-overlay{
@@ -1600,3 +1825,4 @@ button.btn {
 .modal .btn-confirm{ display:inline-flex; align-items:center; gap:8px; padding:10px 14px; border-radius:10px; }
 .modal .fas{ display:inline-block; width:18px; text-align:center; }
 .modal .fas{ display:inline-block; width:18px; text-align:center; }
+
