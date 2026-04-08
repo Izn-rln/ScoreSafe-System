@@ -1796,6 +1796,25 @@ button.btn {
     margin-bottom: 24px;
 }
 
+/* Fix Searchable Dropdown Overlap */
+#studentSelect, #subjectSelect {
+    background-color: white !important;
+    border: 1px solid #ccc !important;
+    border-radius: 0 0 8px 8px !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+    max-height: 200px !important;
+    overflow-y: auto !important;
+}
+
+.form-group {
+    margin-bottom: 20px !important; /* Ensure enough room for the dropdown labels */
+}
+
+/* Ensure the container doesn't cut off the dropdown */
+.card {
+    overflow: visible !important;
+}
+
 /* ========================
    Modal (Sign out confirmation)
 ======================== */
