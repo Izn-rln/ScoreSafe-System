@@ -432,6 +432,7 @@ if (authForm) {
         e.preventDefault();
         const email = document.getElementById('authEmail').value;
         const tempName = document.getElementById('authName').value;
+        const campus = document.getElementById('authCampus').value;
 
         if (email === localStorage.getItem('username')) {
             alert("Error: You cannot authorize yourself as a student.");

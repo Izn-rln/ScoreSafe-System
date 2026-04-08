@@ -42,28 +42,50 @@ router.post('/register-sorsu', async (req, res) => {
         const decodedToken = await admin.auth().verifyIdToken(token);
         const { email, name, picture } = decodedToken;
 
+        // 1. Determine Role based on Whitelist
         const [whitelist] = await db.execute("SELECT * FROM teacher_whitelist WHERE email = ?", [email]);
         const assignedRole = whitelist.length > 0 ? 'teacher' : 'student';
 
-        // Check if user already exists to prevent duplicate entry errors
-        const [existing] = await db.execute("SELECT id FROM users WHERE username = ?", [email]);
+        // 2. Check if user already exists
+        const [existing] = await db.execute("SELECT id, password, campus FROM users WHERE username = ?", [email]);
+        
         if (existing.length > 0) {
-            return res.status(400).json({ error: "User already registered. Please sign in." });
+            const userRecord = existing[0];
+
+            // Scenario A: User is already fully registered
+            if (userRecord.password === 'sso_only') {
+                return res.status(400).json({ error: "User already registered. Please sign in." });
+            }
+
+            // Scenario B: User was pre-authorized by an Admin
+            // We UPDATE their record and keep the ADMIN'S campus choice
+            await db.execute(
+                `UPDATE users 
+                 SET full_name = ?, 
+                     profile_photo = ?, 
+                     is_verified = 1, 
+                     password = 'sso_only' 
+                 WHERE username = ?`,
+                [name, picture, email]
+            );
+        } else {
+            // Scenario C: Pure Self-Signup (Not pre-authorized)
+            // We INSERT a new record and use the user's picked campus from the signup dropdown
+            await db.execute(
+                "INSERT INTO users (full_name, username, password, role, campus, profile_photo, is_verified, is_approved) VALUES (?, ?, 'sso_only', ?, ?, ?, 1, 0)",
+                [name, email, assignedRole, campus, picture]
+            );
         }
 
-        const [result] = await db.execute(
-            "INSERT INTO users (full_name, username, password, role, campus, profile_photo, is_verified, is_approved) VALUES (?, ?, 'sso_only', ?, ?, ?, 1, 0)",
-            [name, email, assignedRole, campus, picture]
-        );
-
-        const [newUser] = await db.execute("SELECT id, role, username, is_approved FROM users WHERE id = ?", [result.insertId]);
+        // 3. Fetch the final record to send back
+        const [newUser] = await db.execute("SELECT id, role, username, campus, is_approved FROM users WHERE username = ?", [email]);
         
         res.json({ 
             message: "Registration successful!", 
             user: newUser[0] 
         });
     } catch (error) {
-        console.error(error);
+        console.error("Registration Error:", error);
         res.status(400).json({ error: error.message });
     }
 });
