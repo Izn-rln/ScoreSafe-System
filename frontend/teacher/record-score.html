@@ -41,43 +41,43 @@
                 <div class="form-grid form-grid-2">
     <div class="form-group" style="position: relative;">
         <label for="studentSearch"><i class="fas fa-user-graduate icon-label"></i> Student</label>
-        <input type="text" id="studentSearch" placeholder="Type to search student..." autocomplete="off" style="border-bottom-left-radius: 0; border-bottom-right-radius: 0;">
-        <select id="studentSelect" size="5" style="position: absolute; z-index: 100; width: 100%; border-top: none; border-top-left-radius: 0; border-top-right-radius: 0; display: none;">
+        <input type="text" id="studentSearch" placeholder="Type to search student..." autocomplete="off">
+        <select id="studentSelect" size="5">
             <option value="">-- Results --</option>
         </select>
     </div>
     
     <div class="form-group" style="position: relative;">
         <label for="subjectSearch"><i class="fas fa-book icon-label"></i> Subject</label>
-        <input type="text" id="subjectSearch" placeholder="Type to search subject..." autocomplete="off" style="border-bottom-left-radius: 0; border-bottom-right-radius: 0;">
-        <select id="subjectSelect" size="5" style="position: absolute; z-index: 100; width: 100%; border-top: none; border-top-left-radius: 0; border-top-right-radius: 0; display: none;">
+        <input type="text" id="subjectSearch" placeholder="Type to search subject..." autocomplete="off">
+        <select id="subjectSelect" size="5">
             <option value="">-- Results --</option>
         </select>
     </div>
 </div>
-<div class="form-grid form-grid-3" style="margin-top: 15px;">
-                    <div class="form-group">
-                        <label for="categorySelect">Category</label>
-                        <select id="categorySelect" required>
-                            <option value="">-- Category --</option>
-                            <option value="Quiz">Quiz</option>
-                            <option value="Activity">Activity</option>
-                            <option value="Performance">Performance</option>
-                            <option value="Examination">Examination</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="totalItemsInput">Total Items</label>
-                        <input type="number" id="totalItemsInput" min="1" placeholder="Total items"
-    oninput="document.getElementById('score').max = this.value">
 
-                    </div>
-                    <div class="form-group">
-                        <label for="score">Student Score</label>
-                        <input type="number" id="score" min="0" placeholder="Score"
-    oninput="validateScore(this)">
-                    </div>
-                </div>
+<div class="form-grid form-grid-3" style="margin-top: 15px;">
+    <div class="form-group">
+        <label for="categorySelect">Category</label>
+        <select id="categorySelect" required>
+            <option value="">-- Category --</option>
+            <option value="Quiz">Quiz</option>
+            <option value="Activity">Activity</option>
+            <option value="Performance">Performance</option>
+            <option value="Examination">Examination</option>
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="totalItemsInput">Total Items</label>
+        <input type="number" id="totalItemsInput" min="1" placeholder="Total items"
+            oninput="document.getElementById('score').max = this.value">
+    </div>
+    <div class="form-group">
+        <label for="score">Student Score</label>
+        <input type="number" id="score" min="0" placeholder="Score"
+            oninput="validateScore(this)">
+    </div>
+</div>
 
                 <div class="form-group" style="margin-top: 15px;">
                     <label for="paperFile">Evidence / Paper Image</label>

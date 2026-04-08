@@ -1796,44 +1796,54 @@ button.btn {
     margin-bottom: 24px;
 }
 
-/* --- ULTIMATE SEARCH DROPDOWN FIX --- */
-#studentSelect, #subjectSelect {
-    display: none; 
+/* Fix dropdown overlap on record-score page */
+.form-grid {
+    display: grid;
+    gap: 24px;
+}
+
+.form-grid-2 {
+    grid-template-columns: 1fr 1fr;
+}
+
+.form-grid-3 {
+    grid-template-columns: 1fr 1fr 1fr;
+}
+
+@media (max-width: 600px) {
+    .form-grid-2,
+    .form-grid-3 {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* CRITICAL: Allow dropdowns to escape their parent containers */
+.form-grid .form-group {
+    position: relative !important;
+    overflow: visible !important;
+    z-index: auto;
+}
+
+/* Stack form-groups so the active one floats above siblings */
+.form-grid .form-group:focus-within {
+    z-index: 500;
+}
+
+#studentSelect,
+#subjectSelect {
     position: absolute !important;
-    top: 100% !important; /* Forces it below the input box */
+    top: 100% !important;
     left: 0 !important;
     width: 100% !important;
-    background-color: #ffffff !important; /* 🛑 PURE WHITE BACKGROUND - NOT TRANSPARENT */
+    z-index: 9999 !important;
+    background: #ffffff !important;
     border: 2px solid var(--primary-color) !important;
     border-top: none !important;
-    border-radius: 0 0 10px 10px !important;
-    box-shadow: 0 12px 24px rgba(0,0,0,0.2) !important; /* Strong shadow to see depth */
-    z-index: 99999 !important; /* 🚀 HIGHEST POSSIBLE LAYER */
+    border-radius: 0 0 8px 8px !important;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15) !important;
     max-height: 200px !important;
     overflow-y: auto !important;
-    padding: 0 !important;
-    margin: 0 !important;
-}
-
-/* Ensure the results inside the dropdown are visible and clickable */
-#studentSelect option, #subjectSelect option {
-    background-color: #ffffff !important;
-    color: #333 !important;
-    padding: 12px !important;
-    border-bottom: 1px solid #eee !important;
-    cursor: pointer !important;
-}
-
-#studentSelect option:hover, #subjectSelect option:hover {
-    background-color: #f8f9fa !important;
-    color: var(--primary-color) !important;
-}
-
-/* Fix the 'Subject' and 'Category' fields so they don't fight for space */
-.form-group {
-    position: relative !important; /* Critical for absolute positioning to work */
-    margin-bottom: 25px !important;
-    overflow: visible !important; 
+    display: none;
 }
 
 /* ========================
