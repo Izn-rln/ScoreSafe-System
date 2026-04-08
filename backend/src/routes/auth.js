@@ -239,7 +239,8 @@ if (!email || !email.endsWith('@sorsu.edu.ph')) {
 
         await db.execute(
             "INSERT INTO users (full_name, username, password, role, is_verified, is_approved) VALUES (?, ?, 'pending_sso', 'student', 0, 0)",
-            [fullName, email]
+            [fullName, email, ]
+            [fullName, email, campus]
         );
 
         res.json({ message: "Student authorized successfully." });
