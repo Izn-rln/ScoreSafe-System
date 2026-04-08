@@ -1815,6 +1815,32 @@ button.btn {
     overflow: visible !important;
 }
 
+/* Force the dropdown to float above everything */
+#studentSelect, #subjectSelect {
+    background-color: #ffffff !important; /* Solid background is key */
+    position: absolute !important;
+    left: 0 !important;
+    right: 0 !important;
+    top: 100% !important; /* Positions it exactly below the input */
+    z-index: 9999 !important; /* Moves it to the very front layer */
+    border: 1px solid #800000 !important; /* Match your theme */
+    border-radius: 0 0 8px 8px !important;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.2) !important;
+    display: none; /* JS handles showing this */
+}
+
+/* Ensure the parent container allows floating children */
+.form-group {
+    position: relative !important;
+    overflow: visible !important;
+    z-index: 10 !important;
+}
+
+/* Ensure the card doesn't clip the dropdown */
+.card {
+    overflow: visible !important;
+}
+
 /* ========================
    Modal (Sign out confirmation)
 ======================== */
