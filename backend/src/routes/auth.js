@@ -90,7 +90,6 @@ router.post('/profile/upload-photo', upload.single('profile_photo'), async (req,
         res.status(500).json({ error: "Failed to save photo reference to database." });
     }
 });
-
 router.get('/profile', async (req, res) => {
     const { all, username } = req.query; 
     try {
@@ -98,9 +97,17 @@ router.get('/profile', async (req, res) => {
             const [users] = await db.execute("SELECT id, full_name, username, role, campus, is_approved, is_verified FROM users");
             return res.json(users);
         }
-        const [users] = await db.execute('SELECT id, full_name, username, bio, profile_photo FROM users WHERE username = ?', [username]);
-        if (users.length > 0) res.json(users[0]);
-        else res.status(404).json({ message: "User not found" });
+
+        const [users] = await db.execute(
+            'SELECT id, full_name, username, bio, profile_photo, role FROM users WHERE username = ?', 
+            [username]
+        );
+
+        if (users.length > 0) {
+            res.json(users[0]);
+        } else {
+            res.status(404).json({ message: "User not found" });
+        }
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -170,6 +177,12 @@ router.get('/check-user', async (req, res) => {
 router.post('/authorize-student', async (req, res) => {
     const { email, fullName } = req.body;
     try {
+if (!email || !email.endsWith('@sorsu.edu.ph')) {
+        return res.status(400).json({ 
+            error: "Invalid email. Only @sorsu.edu.ph accounts can be enrolled." 
+        });
+    }
+
         const [facultyCheck] = await db.execute(
             "SELECT is_admin FROM teacher_whitelist WHERE email = ?", [email]
         );

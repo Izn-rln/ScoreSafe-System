@@ -7,7 +7,7 @@ async function loadProfile() {
     }
 
     try {
-        const response = await fetch(`/api/auth/profile?username=${username}`);
+        const response = await fetch(`${API_BASE_URL}/api/auth/profile?username=${username}`);
         const data = await response.json();
 
         if (response.ok) {
