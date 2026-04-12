@@ -197,7 +197,7 @@ router.get('/check-user', async (req, res) => {
 });
 
 router.post('/authorize-student', async (req, res) => {
-    const { email, fullName } = req.body;
+    const { email, fullName, campus } = req.body;
     try {
 if (!email || !email.endsWith('@sorsu.edu.ph')) {
         return res.status(400).json({ 
@@ -238,10 +238,9 @@ if (!email || !email.endsWith('@sorsu.edu.ph')) {
         await db.execute("DELETE FROM teacher_whitelist WHERE email = ?", [email]);
 
         await db.execute(
-            "INSERT INTO users (full_name, username, password, role, is_verified, is_approved) VALUES (?, ?, 'pending_sso', 'student', 0, 0)",
-            [fullName, email, ]
-            [fullName, email, campus]
-        );
+    "INSERT INTO users (full_name, username, password, role, campus, is_verified, is_approved) VALUES (?, ?, 'pending_sso', 'student', ?, 0, 0)",
+    [fullName, email, campus || '']
+);
 
         res.json({ message: "Student authorized successfully." });
     } catch (err) {

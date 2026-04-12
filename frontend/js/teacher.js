@@ -458,7 +458,7 @@ if (authForm) {
                 body: JSON.stringify({ 
                     email: email, 
                     fullName: tempName, 
-                    campus: campus // Correctly defined now
+                    campus: campus
                 })
             });
 
