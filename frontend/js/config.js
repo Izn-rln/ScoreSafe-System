@@ -1,1 +1,1 @@
-const API_BASE_URL = 'https://scoresafe-system-production.up.railway.app';
+const API_BASE_URL = '';

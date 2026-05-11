@@ -26,7 +26,7 @@ app.use(cors({
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
-
+app.use(express.static(path.join(__dirname, '../../frontend')));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -38,4 +38,7 @@ app.use('/api/scores', scoreRoutes);
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server is running on port ${PORT}`);
+});
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../../frontend/index.html'));
 });
