@@ -1,1 +1,1 @@
-const API_BASE_URL = 'https://scoresafe-system.onrender.com';
+const API_BASE_URL = 'https://score-safe-system-52ow.vercel.app/';
