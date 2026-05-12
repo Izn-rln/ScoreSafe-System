@@ -21,8 +21,18 @@
         });
     };
 
+function esc(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#x27;');
+}
+
     async function renderStudentData() {
-        const email = localStorage.getItem('username'); 
+        const email = sessionStorage.getItem('username'); 
         
         const tbody = document.querySelector('#studentScoresTable tbody') || 
                     document.querySelector('#myRecordsTable tbody');
@@ -60,9 +70,9 @@
                 const statusBadge = `<span class="badge" style="background: #e6f4ea; color: #1e7e34; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; border: 1px solid #1e7e34;"><i class="fas fa-check-circle"></i> OFFICIAL</span>`;
 
                 tr.innerHTML = `
-                    <td>${r.subject_name || 'General'}</td>
-                    <td><strong>${r.score}</strong></td>
-                    <td>${r.total_items || '-'}</td>
+                    <td>${esc(r.subject_name) || 'General'}</td>
+<td><strong>${esc(r.score)}</strong></td>
+<td>${esc(r.teacher_name) || 'Faculty Member'}</td>
                     <td>
                         ${r.paper_image_url ? 
                             `<a href="${API_BASE_URL}/uploads/${r.paper_image_url}" target="_blank" class="view-link">View Paper</a>` : 
@@ -96,7 +106,7 @@
     }
 
     async function displayStudentProfile() {
-        const email = localStorage.getItem('username');
+        const email = sessionStorage.getItem('username');
         console.log("Loading profile for:", email);
 
         // We check for the form, but if it's null, we'll try to find the fields directly
@@ -176,7 +186,7 @@
                 const formData = new FormData();
                 formData.append('profile_photo', blob, 'avatar.jpg');
 
-                const email = localStorage.getItem('username');
+                const email = sessionStorage.getItem('username');
                 if (!email) {
                     alert("Session expired. Please sign in again.");
                     return;
@@ -220,7 +230,7 @@
             e.preventDefault();
             const fullName = document.getElementById('studentFullName').value;
             const bio = document.getElementById('studentBio').value;
-            const email = localStorage.getItem('username');
+            const email = sessionStorage.getItem('username');
             try {
                 const res = await fetch(`${API_BASE_URL}/api/auth/profile/update`, {
                     method: 'POST',
@@ -228,7 +238,7 @@
                     body: JSON.stringify({ fullName, bio, email })
                 });
                 if (res.ok) {
-                    localStorage.setItem('fullName', fullName);
+                    sessionStorage.setItem('fullName', fullName);
                     alert("Profile saved!");
                     displayStudentProfile();
                 }
@@ -282,7 +292,7 @@
         button.addEventListener('click', (e) => {
             e.preventDefault();
             if (confirm("Sign out?")) {
-                localStorage.clear();
+                sessionStorage.clear();
                 window.location.href = '../index.html';
             }
         });

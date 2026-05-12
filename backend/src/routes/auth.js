@@ -4,6 +4,7 @@ const db = require('../db');
 const admin = require("firebase-admin");
 const path = require('path');
 const multer = require('multer');
+const { verifyToken } = require('../middleware/authGuard');
 
 if (!admin.apps.length) {
     admin.initializeApp({
@@ -21,20 +22,19 @@ if (!admin.apps.length) {
     });
 }
 
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        // Correct path to step out of src/routes to reach the root uploads folder
-        cb(null, path.join(__dirname, '../../uploads'));
-    },
-    filename: (req, file, cb) => {
-        cb(null, 'avatar-' + Date.now() + '.jpg');
+const cloudinary = require('../cloudinary');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+
+const storage = new CloudinaryStorage({
+    cloudinary,
+    params: {
+        folder: 'scoresafe/avatars',
+        allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+        transformation: [{ width: 400, height: 400, crop: 'fill' }]
     }
 });
 
-const upload = multer({ 
-    storage: storage,
-    limits: { fileSize: 5 * 1024 * 1024 }
-});
+const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
 
 router.post('/register-sorsu', async (req, res) => {
     const { token, campus } = req.body; 
@@ -90,28 +90,32 @@ router.post('/register-sorsu', async (req, res) => {
     }
 });
 
-router.post('/profile/upload-photo', upload.single('profile_photo'), async (req, res) => {
+router.post('/profile/upload-photo', verifyToken, upload.single('profile_photo'), async (req, res) => {
     const { email } = req.body;
-    if (!req.file) return res.status(400).json({ error: "No image file provided" });
-    const filename = req.file.filename;
+    if (!req.file) return res.status(400).json({ error: 'No image file provided' });
 
-    if (!email || email === 'null' || email === 'undefined') {
-        return res.status(400).json({ error: "User email is required for the update." });
+    // Cloudinary gives req.file.path as the full URL
+    const imageUrl = req.file.path;
+
+    if (!email || email === 'null') {
+        return res.status(400).json({ error: 'User email is required.' });
     }
 
     try {
-        const [result] = await db.execute("UPDATE users SET profile_photo = ? WHERE username = ?", [filename, email]);
-        
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ error: "User not found. No record was updated." });
+        const result = await db.query(
+            'UPDATE users SET profile_photo = $1 WHERE username = $2 RETURNING *',
+            [imageUrl, email]
+        );
+       if (result.rowCount === 0) {
+            return res.status(404).json({ error: 'User not found.' });
         }
-
-        res.json({ message: "Photo uploaded successfully!", filename: filename });
+        res.json({ message: 'Photo uploaded successfully!', filename: imageUrl });
     } catch (err) {
-        console.error("Database Error:", err);
-        res.status(500).json({ error: "Failed to save photo reference to database." });
+        console.error('Database Error:', err);
+        res.status(500).json({ error: 'Failed to save photo.' });
     }
 });
+
 router.get('/profile', async (req, res) => {
     const { all, username } = req.query; 
     try {
@@ -135,7 +139,7 @@ router.get('/profile', async (req, res) => {
     }
 });
 
-router.post('/profile/update', async (req, res) => {
+router.post('/profile/update', verifyToken, async (req, res) => {
     const { fullName, bio, email } = req.body;
     if (!email) return res.status(400).json({ error: "Email is required" });
     try {

@@ -4,13 +4,19 @@ const db = require('../db');
 const multer = require('multer');
 const path = require('path');
 
-const storage = multer.diskStorage({
-    destination: path.join(__dirname, '../../uploads'), 
-    filename: (req, file, cb) => {
-        cb(null, Date.now() + path.extname(file.originalname));
+const cloudinary = require('../cloudinary');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+
+const storage = new CloudinaryStorage({
+    cloudinary,
+    params: {
+        folder: 'scoresafe/papers',
+        allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+        transformation: [{ width: 400, height: 400, crop: 'fill' }]
     }
 });
-const upload = multer({ storage: storage });
+
+const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
 
 router.post('/authorize-teacher', async (req, res) => {
     const { email, campus } = req.body;
@@ -27,7 +33,7 @@ router.post('/authorize-teacher', async (req, res) => {
         await db.execute(sql, [email, campus || 'Main']);
         res.json({ message: `Teacher authorized. Previous student record cleared.` });
     } catch (err) {
-        if (err.code === 'ER_DUP_ENTRY') return res.status(400).json({ error: "Email already in whitelist." });
+        if (err.code === '23505') return res.status(400).json({ error: "Email already in whitelist." });
         res.status(500).json({ error: "Internal server error." });
     }
 });
@@ -41,7 +47,7 @@ router.get('/get-faculty', async (req, res) => {
 
 router.post('/upload-score', upload.single('paper_image'), async (req, res) => {
     const { student_id, subject_id, score, category, total_items, recorded_by_id } = req.body;
-    const imageUrl = req.file ? req.file.filename : null;
+    const imageUrl = req.file ? req.file.path : null;
 
     if (parseInt(score) > parseInt(total_items)) {
         return res.status(400).json({ error: `Invalid Score: Cannot be greater than Total.` });
@@ -218,8 +224,8 @@ router.post('/request-authorize-teacher', async (req, res) => {
 
         if (requester[0].is_admin) {
             await db.execute(
-                "INSERT INTO teacher_whitelist (email, campus, is_admin, is_pending) VALUES (?, ?, 0, 0) ON DUPLICATE KEY UPDATE campus = ?, is_pending = 0",
-                [email, campus, campus]
+    "INSERT INTO teacher_whitelist (email, campus, is_admin, is_pending) VALUES (?, ?, 0, 0) ON CONFLICT (email) DO UPDATE SET campus = EXCLUDED.campus, is_pending = 0",
+    [email, campus]
             );
             return res.json({ message: "Teacher authorized successfully.", status: 'approved' });
         } else {

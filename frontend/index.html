@@ -86,9 +86,9 @@
                 window.location.href = 'signup.html';
 
             } else if (res.ok) {
-                localStorage.setItem('role', data.user.role);
-                localStorage.setItem('username', data.user.username);
-                localStorage.setItem('userId', data.user.id);
+                sessionStorage.setItem('role', data.user.role);
+sessionStorage.setItem('username', data.user.username);
+sessionStorage.setItem('userId', data.user.id);
 
                 if (data.user.role === 'student') {
                     window.location.href = data.user.is_approved === 0 
@@ -98,7 +98,7 @@
                     const facultyRes = await fetch(`${API_BASE_URL}/api/scores/get-faculty`);
                     const faculty = await facultyRes.json();
                     const me = faculty.find(f => f.email === data.user.username);
-                    localStorage.setItem('isAdmin', me?.is_admin ? '1' : '0');
+                    sessionStorage.setItem('isAdmin', me?.is_admin ? '1' : '0');
                     window.location.href = 'teacher/dashboard.html';
                 }
             } else {

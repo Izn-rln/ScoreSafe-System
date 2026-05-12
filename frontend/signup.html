@@ -88,14 +88,13 @@
             const data = await res.json();
 
             if (res.ok) {
-                localStorage.setItem('role', data.user.role);
-                localStorage.setItem('username', data.user.username);
+                sessionStorage.setItem('role', data.user.role);
+                sessionStorage.setItem('username', data.user.username);
                 localStorage.setItem('fullName', data.user.full_name);
-                localStorage.setItem('profilePic', data.user.profile_photo);
+                sessionStorage.setItem('profilePic', data.user.profile_photo);
                 localStorage.setItem('campus', campus);
-                localStorage.setItem('userId', data.user.id);
+                sessionStorage.setItem('userId', data.user.id);
 
-                sessionStorage.clear();
 
                 alert("Account Created! Please wait for faculty approval.");
 

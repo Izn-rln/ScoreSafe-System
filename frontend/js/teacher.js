@@ -3,11 +3,21 @@ document.querySelectorAll('.logout-btn').forEach(btn => {
         e.preventDefault();
         const confirmLogout = confirm("Are you sure you want to sign out? Any unsaved changes may be lost.");
         if (confirmLogout) {
-            localStorage.clear();
+            sessionStorage.clear();
             window.location.href = "../index.html"; 
         }
     });
 });
+
+function esc(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#x27;');
+}
 
 async function displayProfileInfo() {
     const nameField = document.getElementById('teacherFullName');
@@ -15,7 +25,7 @@ async function displayProfileInfo() {
     const bioField = document.getElementById('teacherBio');
     const avatarWrapper = document.getElementById('teacherAvatarPreview');
 
-    const email = localStorage.getItem('username');
+    const email = sessionStorage.getItem('username');
     if (!email) return;
 
     try {
@@ -48,7 +58,7 @@ async function saveProfileChanges(e) {
 
     const fullName = document.getElementById('teacherFullName').value;
     const bio = document.getElementById('teacherBio').value;
-    const email = localStorage.getItem('username'); 
+    const email = sessionStorage.getItem('username'); 
 
     try {
         const res = await fetch(`${API_BASE_URL}/api/auth/profile/update`, {
@@ -58,7 +68,7 @@ async function saveProfileChanges(e) {
         });
 
         if (res.ok) {
-            localStorage.setItem('fullName', fullName);
+            sessionStorage.setItem('fullName', fullName);
             alert("Success! Your profile has been updated.");
             displayProfileInfo(); 
         }
@@ -91,8 +101,8 @@ async function renderScoresTables() {
                 : `<span class="badge" style="background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0;"><i class="fas fa-eye-slash"></i> DRAFT (HIDDEN)</span>`;
 
             tr.innerHTML = `
-                <td>${r.full_name || 'Unknown Student'} ${lockStatus}</td> 
-                <td>${r.subject_name || 'General'}</td>
+                <td>${esc(r.full_name) || 'Unknown Student'} ${lockStatus}</td>
+<td>${esc(r.subject_name) || 'General'}</td>
                 <td>${r.score}</td>
                 <td>${r.total_items || '-'}</td>
                 <td>
@@ -124,7 +134,7 @@ async function renderFacultyTable() {
     const tbody = document.querySelector('#facultyTable tbody');
     if (!tbody) return;
 
-    const requesterEmail = localStorage.getItem('username');
+    const requesterEmail = sessionStorage.getItem('username');
 
     try {
         const res = await fetch(`${API_BASE_URL}/api/scores/get-faculty`);
@@ -133,7 +143,7 @@ async function renderFacultyTable() {
         const me = faculty.find(f => f.email === requesterEmail);
         const isAdmin = me?.is_admin === 1;
 
-        localStorage.setItem('isAdmin', isAdmin ? '1' : '0');
+        sessionStorage.setItem('isAdmin', isAdmin ? '1' : '0');
 
         const approved = faculty.filter(f => !f.is_pending);
 
@@ -145,8 +155,8 @@ async function renderFacultyTable() {
                 const isSelf = f.email === requesterEmail;
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td>${f.email} ${isSelf ? '<span style="font-size:0.7rem;color:#888;">(you)</span>' : ''}</td>
-                    <td>${f.campus}</td>
+                    <td>${esc(f.email)} ${isSelf ? '<span style="font-size:0.7rem;color:#888;">(you)</span>' : ''}</td>
+                    <td>${esc(f.campus)}</td>
                     <td>
                         <span style="background:${f.is_admin ? '#fef3c7' : '#e0f2fe'};
                                      color:${f.is_admin ? '#92400e' : '#0369a1'};
@@ -170,12 +180,12 @@ async function renderFacultyTable() {
                                     </button>
                                 `}
                                 <button class="btn danger" style="padding: 6px 14px; font-size: 0.85rem;"
-                                    onclick="removeFaculty('${f.email}')">
+                                    onclick="removeFaculty('${esc(f.email)}')">
                                     <i class="fas fa-trash"></i> Remove
                                 </button>
                             ` : !isAdmin && !f.is_admin && !isSelf ? `
                                 <button class="btn danger" style="padding: 6px 14px; font-size: 0.85rem;"
-                                    onclick="removeFaculty('${f.email}')">
+                                    onclick="removeFaculty('${esc(f.email)}')">
                                     <i class="fas fa-trash"></i> Remove
                                 </button>
                             ` : `
@@ -301,7 +311,7 @@ async function renderPendingRequests(pending) {
 }
 
 async function approveFacultyRequest(email) {
-    const requesterEmail = localStorage.getItem('username');
+    const requesterEmail = sessionStorage.getItem('username');
     try {
         const res = await fetch(`${API_BASE_URL}/api/scores/approve-faculty-request`, {
             method: 'PUT',
@@ -315,7 +325,7 @@ async function approveFacultyRequest(email) {
 }
 
 async function declineFacultyRequest(email) {
-    const requesterEmail = localStorage.getItem('username');
+    const requesterEmail = sessionStorage.getItem('username');
     try {
         const res = await fetch(`${API_BASE_URL}/api/scores/decline-faculty-request`, {
             method: 'DELETE',
@@ -334,7 +344,7 @@ if (addTeacherForm) {
         e.preventDefault();
         const email = document.getElementById('newTeacherEmail').value;
         const campus = document.getElementById('campusSelect').value;
-        const requesterEmail = localStorage.getItem('username');
+        const requesterEmail = sessionStorage.getItem('username');
         try {
             const res = await fetch(`${API_BASE_URL}/api/scores/request-authorize-teacher`, {
                 method: 'POST',
@@ -360,7 +370,7 @@ if (recordForm) {
         const totalItemsInput = document.getElementById('totalItemsInput');
         const studentId = document.getElementById('studentSelect').value;
         const subjectId = document.getElementById('subjectSelect').value;
-        const teacherId = localStorage.getItem('userId');
+        const teacherId = sessionStorage.getItem('userId');
 
         const score = parseInt(scoreInput.value);
         const totalItems = parseInt(totalItemsInput.value);
@@ -440,7 +450,7 @@ if (authForm) {
         const campus = campusElement ? campusElement.value : "N/A";
 
         // 3. Validation
-        if (email === localStorage.getItem('username')) {
+        if (email === sessionStorage.getItem('username')) {
             alert("Error: You cannot authorize yourself as a student.");
             return;
         }
@@ -641,9 +651,9 @@ tbody.innerHTML = pendingApproval.map(s => `
                 ${s.is_verified ? 'Pending Approval' : 'Authorized'}
             </span>
         </td>
-        <td>${s.username}</td>
-        <td>${s.full_name}</td>
-        <td>${s.campus || '---'}</td>
+        <td>${esc(s.username)}</td>
+<td>${esc(s.full_name)}</td>
+<td>${esc(s.campus) || '---'}</td>
         <td>
             <div style="display: flex; gap: 8px; align-items: center;">
                 <button class="btn" style="padding: 6px 12px; font-size: 0.85rem;"
@@ -651,7 +661,7 @@ tbody.innerHTML = pendingApproval.map(s => `
                     <i class="fas fa-check"></i> Approve
                 </button>
                 <button class="btn danger" style="padding: 6px 12px; font-size: 0.85rem;"
-                    onclick="handleRemoveStudent(${s.id}, '${s.full_name}')">
+                    onclick="handleRemoveStudent(${parseInt(s.id)}, '${esc(s.full_name)}')">
                     <i class="fas fa-times"></i> Decline
                 </button>
             </div>
@@ -695,9 +705,9 @@ async function renderActiveStudentTable() {
             return `
                 <tr>
                     <td>${statusBadge}</td>
-                    <td>${s.username}</td>
-                    <td>${s.full_name}</td>
-                    <td>${s.campus || 'N/A'}</td>
+                    <td>${esc(s.username)}</td>
+<td>${esc(s.full_name)}</td>
+<td>${esc(s.campus) || 'N/A'}</td>
                     <td style="text-align: center;">
                         <div style="display: flex; gap: 8px; justify-content: center; align-items: center;">
                             <button class="btn outline" style="padding: 6px 12px; font-size: 0.85rem;"
@@ -741,7 +751,7 @@ async function handleRemoveStudent(id, name) {
 
 async function removeFaculty(email) {
     if (!confirm(`Remove ${email} from the faculty list?`)) return;
-    const requesterEmail = localStorage.getItem('username');
+    const requesterEmail = sessionStorage.getItem('username');
     try {
         const res = await fetch(`${API_BASE_URL}/api/scores/remove-faculty`, {
             method: 'DELETE',
@@ -760,7 +770,7 @@ async function removeFaculty(email) {
 
 async function promoteToAdmin(email) {
     if (!confirm(`Promote ${email} to Admin?`)) return;
-    const requesterEmail = localStorage.getItem('username');
+    const requesterEmail = sessionStorage.getItem('username');
     try {
         const res = await fetch(`${API_BASE_URL}/api/scores/update-faculty-role`, {
             method: 'PUT',
@@ -779,7 +789,7 @@ async function promoteToAdmin(email) {
 
 async function demoteToTeacher(email) {
     if (!confirm(`Demote ${email} back to Teacher?`)) return;
-    const requesterEmail = localStorage.getItem('username');
+    const requesterEmail = sessionStorage.getItem('username');
     try {
         const res = await fetch(`${API_BASE_URL}/api/scores/update-faculty-role`, {
             method: 'PUT',
@@ -905,7 +915,7 @@ document.getElementById('confirmCrop')?.addEventListener('click', () => {
         const formData = new FormData();
         formData.append('profile_photo', blob, 'avatar.jpg');
         
-        const email = localStorage.getItem('username');
+        const email = sessionStorage.getItem('username');
         if (!email) {
             alert("Session expired. Please sign in again.");
             return;

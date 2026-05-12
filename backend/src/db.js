@@ -5,9 +5,9 @@ const db = new Pool({
     ssl: { rejectUnauthorized: false }
 });
 
-// Helper to make pg work like mysql2 execute
-db.execute = (sql, params) => {
-    const pgSql = sql.replace(/\?/g, (_, i) => `$${i + 1}`);
+db.execute = (sql, params = []) => {
+    let counter = 0;
+    const pgSql = sql.replace(/\?/g, () => `$${++counter}`);
     return db.query(pgSql, params).then(res => [res.rows, res]);
 };
 

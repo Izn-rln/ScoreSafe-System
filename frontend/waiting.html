@@ -32,7 +32,7 @@
 
 <script>
     setInterval(async () => {
-        const email = localStorage.getItem('username');
+        const email = sessionStorage.getItem('username');
         if (!email) return;
 
         const res = await fetch(`${API_BASE_URL}/api/auth/google-login-status?email=${email}`);
