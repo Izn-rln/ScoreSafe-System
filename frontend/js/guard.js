@@ -1,6 +1,6 @@
 (async function() {
-    const role = sessionStorage.getItem('role');
-    const username = sessionStorage.getItem('username');
+    const role = sessionStorage.getItem('role') || localStorage.getItem('role');
+    const username = sessionStorage.getItem('username') || localStorage.getItem('username');
     const path = window.location.pathname;
 
     const isTeacherPage = path.includes('/teacher/');
@@ -12,6 +12,10 @@
         return;
     }
 
+    // Sync to sessionStorage if only in localStorage
+    if (!sessionStorage.getItem('role')) sessionStorage.setItem('role', role);
+    if (!sessionStorage.getItem('username')) sessionStorage.setItem('username', username);
+
     if (typeof API_BASE_URL !== 'undefined') {
         try {
             const res = await fetch(`${API_BASE_URL}/api/auth/profile?username=${encodeURIComponent(username)}`);
@@ -19,6 +23,7 @@
                 const userData = await res.json();
                 if (userData.role && userData.role !== role) {
                     sessionStorage.setItem('role', userData.role);
+                    localStorage.setItem('role', userData.role);
                     window.location.href = userData.role === 'teacher'
                         ? '../teacher/dashboard.html'
                         : '../student/dashboard.html';
