@@ -10,7 +10,6 @@ const scoreRoutes = require('./routes/scores');
 
 const app = express();
 
-// Upload dir (only used locally; Cloudinary handles prod)
 const uploadDir = path.join(__dirname, '..', 'uploads');
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
@@ -43,16 +42,23 @@ app.use((req, res, next) => {
     next();
 });
 
-// Rate limiting
+// Rate limiting - increased for normal dashboard use
+// Each page can fire 5-8 requests on load, so 500/15min handles ~60 page loads
 const generalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 100,
-    message: { error: 'Too many requests. Please try again later.' }
+    max: 500,
+    message: { error: 'Too many requests. Please try again later.' },
+    standardHeaders: true,
+    legacyHeaders: false,
 });
+
+// Auth endpoints - keep stricter
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 20,
-    message: { error: 'Too many login attempts. Please wait.' }
+    max: 50,
+    message: { error: 'Too many login attempts. Please wait.' },
+    standardHeaders: true,
+    legacyHeaders: false,
 });
 
 app.use('/api/', generalLimiter);
@@ -76,7 +82,7 @@ app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../../frontend/index.html'));
 });
 
-// Error handler (must be last)
+// Error handler
 app.use((err, req, res, next) => {
     if (err.name === 'MulterError' || (err.message && err.message.includes('Only'))) {
         return res.status(400).json({ error: err.message });
