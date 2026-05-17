@@ -4,6 +4,7 @@ document.querySelectorAll('.logout-btn').forEach(btn => {
         const confirmLogout = confirm("Are you sure you want to sign out? Any unsaved changes may be lost.");
         if (confirmLogout) {
             sessionStorage.clear();
+            localStorage.clear();
             window.location.href = "../index.html"; 
         }
     });
@@ -19,17 +20,34 @@ function esc(str) {
         .replace(/'/g, '&#x27;');
 }
 
+// Helper: safe fetch that always returns an array
+async function safeFetchArray(url) {
+    try {
+        const res = await fetch(url);
+        if (res.status === 429) {
+            console.warn('Rate limited:', url);
+            return [];
+        }
+        const data = await res.json();
+        return Array.isArray(data) ? data : [];
+    } catch (e) {
+        console.error('Fetch error:', url, e);
+        return [];
+    }
+}
+
 async function displayProfileInfo() {
     const nameField = document.getElementById('teacherFullName');
     const emailField = document.getElementById('teacherEmail');
     const bioField = document.getElementById('teacherBio');
     const avatarWrapper = document.getElementById('teacherAvatarPreview');
 
-    const email = sessionStorage.getItem('username');
+    const email = sessionStorage.getItem('username') || localStorage.getItem('username');
     if (!email) return;
 
     try {
         const res = await fetch(`${API_BASE_URL}/api/auth/profile?username=${email}`);
+        if (res.status === 429) return;
         const user = await res.json();
 
         if (res.ok) {
@@ -58,7 +76,7 @@ async function saveProfileChanges(e) {
 
     const fullName = document.getElementById('teacherFullName').value;
     const bio = document.getElementById('teacherBio').value;
-    const email = sessionStorage.getItem('username'); 
+    const email = sessionStorage.getItem('username') || localStorage.getItem('username');
 
     try {
         const res = await fetch(`${API_BASE_URL}/api/auth/profile/update`, {
@@ -69,6 +87,7 @@ async function saveProfileChanges(e) {
 
         if (res.ok) {
             sessionStorage.setItem('fullName', fullName);
+            localStorage.setItem('fullName', fullName);
             alert("Success! Your profile has been updated.");
             displayProfileInfo(); 
         }
@@ -77,13 +96,12 @@ async function saveProfileChanges(e) {
     }
 }
 
-
 async function renderScoresTables() {
+    const tbody = document.querySelector('#scoresTable tbody');
+    if (!tbody) return;
+
     try {
-        const res = await fetch(`${API_BASE_URL}/api/scores/get-records`);
-        const records = await res.json();
-        const tbody = document.querySelector('#scoresTable tbody');
-        if (!tbody) return;
+        const records = await safeFetchArray(`${API_BASE_URL}/api/scores/get-records`);
 
         tbody.innerHTML = '';
         if (records.length === 0) {
@@ -93,37 +111,33 @@ async function renderScoresTables() {
 
         records.forEach((r) => {
             const tr = document.createElement('tr');
-            
             const lockStatus = r.is_finalized ? '<i class="fas fa-lock" style="color: #888; margin-left: 5px;" title="Finalized"></i>' : '';
-            
             const statusBadge = r.is_finalized 
                 ? `<span class="badge" style="background: #e6f4ea; color: #1e7e34; border: 1px solid #c3e6cb;"><i class="fas fa-eye"></i> PUBLISHED</span>`
                 : `<span class="badge" style="background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0;"><i class="fas fa-eye-slash"></i> DRAFT (HIDDEN)</span>`;
 
             tr.innerHTML = `
                 <td>${esc(r.full_name) || 'Unknown Student'} ${lockStatus}</td>
-<td>${esc(r.subject_name) || 'General'}</td>
+                <td>${esc(r.subject_name) || 'General'}</td>
                 <td>${r.score}</td>
                 <td>${r.total_items || '-'}</td>
-                <td>
-                    ${r.paper_image_url ? `<a href="${API_BASE_URL}/uploads/${r.paper_image_url}" target="_blank" class="view-link">View Paper</a>` : 'No Image'}
-                </td>
+                <td>${r.paper_image_url ? `<a href="${r.paper_image_url}" target="_blank" class="view-link">View Paper</a>` : 'No Image'}</td>
                 <td>${r.category}</td>
-                <td>${r.teacher_name || 'Admin'}</td> 
+                <td>${r.teacher_name || 'Admin'}</td>
                 <td>${statusBadge}</td>
                 <td>${new Date(r.date_created).toLocaleDateString()}</td>
                 <td>
-    <div style="display: flex; gap: 8px; justify-content: center; align-items: center; white-space: nowrap;">
-        <button class="btn" style="padding: 6px 14px; font-size: 0.85rem; min-width: 70px;"
-            onclick="editScore(${r.id}, ${r.is_finalized})">
-            <i class="fas fa-pen"></i> Edit
-        </button>
-        <button class="btn outline" style="padding: 6px 14px; font-size: 0.85rem; min-width: 80px;"
-            onclick="lockScore(${r.id}, ${r.is_finalized})">
-            <i class="fas fa-lock"></i> Finalize
-        </button>
-    </div>
-</td>
+                    <div style="display: flex; gap: 8px; justify-content: center; align-items: center; white-space: nowrap;">
+                        <button class="btn" style="padding: 6px 14px; font-size: 0.85rem; min-width: 70px;"
+                            onclick="editScore(${r.id}, ${r.is_finalized})">
+                            <i class="fas fa-pen"></i> Edit
+                        </button>
+                        <button class="btn outline" style="padding: 6px 14px; font-size: 0.85rem; min-width: 80px;"
+                            onclick="lockScore(${r.id}, ${r.is_finalized})">
+                            <i class="fas fa-lock"></i> Finalize
+                        </button>
+                    </div>
+                </td>
             `;
             tbody.appendChild(tr);
         });
@@ -134,11 +148,15 @@ async function renderFacultyTable() {
     const tbody = document.querySelector('#facultyTable tbody');
     if (!tbody) return;
 
-    const requesterEmail = sessionStorage.getItem('username');
+    const requesterEmail = sessionStorage.getItem('username') || localStorage.getItem('username');
 
     try {
-        const res = await fetch(`${API_BASE_URL}/api/scores/get-faculty`);
-        const faculty = await res.json();
+        const faculty = await safeFetchArray(`${API_BASE_URL}/api/scores/get-faculty`);
+
+        if (faculty.length === 0) {
+            tbody.innerHTML = '<tr class="empty-row"><td colspan="4">No faculty authorized yet.</td></tr>';
+            return;
+        }
 
         const me = faculty.find(f => f.email === requesterEmail);
         const isAdmin = me?.is_admin === 1;
@@ -208,49 +226,47 @@ async function renderFacultyTable() {
 async function renderStudentTable() {
     const tbody = document.querySelector('#studentsTable tbody');
     if (!tbody) return;
-    try {
-        const res = await fetch(`${API_BASE_URL}/api/auth/profile?all=true`);
-        const users = await res.json();
-        const students = users.filter(u => u.role === 'student');
+    const users = await safeFetchArray(`${API_BASE_URL}/api/auth/profile?all=true`);
+    const students = users.filter(u => u.role === 'student');
 
-        tbody.innerHTML = '';
-        if (students.length === 0) {
-            tbody.innerHTML = '<tr class="empty-row"><td colspan="3">No students yet</td></tr>';
-            return;
-        }
-        students.forEach(s => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${s.username}</td>
-                <td>${s.full_name}</td>
-                <td><button class="btn-small outline" onclick="deleteUser(${s.id})">Remove</button></td>
-            `;
-            tbody.appendChild(tr);
-        });
-    } catch (e) { console.error(e); }
+    tbody.innerHTML = '';
+    if (students.length === 0) {
+        tbody.innerHTML = '<tr class="empty-row"><td colspan="3">No students yet</td></tr>';
+        return;
+    }
+    students.forEach(s => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${s.username}</td>
+            <td>${s.full_name}</td>
+            <td><button class="btn-small outline" onclick="deleteUser(${s.id})">Remove</button></td>
+        `;
+        tbody.appendChild(tr);
+    });
 }
 
 async function renderSubjectTable() {
     const tbody = document.querySelector('#subjectsTable tbody');
     if (!tbody) return;
-    try {
-        const res = await fetch(`${API_BASE_URL}/api/scores/get-subjects`);
-        const subjects = await res.json();
-        tbody.innerHTML = '';
-subjects.forEach(s => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-        <td>${s.name}</td>
-        <td style="text-align: center;">
-            <button class="btn danger" style="padding: 6px 12px; font-size: 0.85rem;"
-                onclick="deleteSubject(${s.id})">
-                <i class="fas fa-trash"></i> Remove
-            </button>
-        </td>
-    `;
-    tbody.appendChild(tr);
-});
-    } catch (e) { console.error(e); }
+    const subjects = await safeFetchArray(`${API_BASE_URL}/api/scores/get-subjects`);
+    tbody.innerHTML = '';
+    if (subjects.length === 0) {
+        tbody.innerHTML = '<tr class="empty-row"><td colspan="2" style="text-align:center;padding:40px;">No subjects added yet</td></tr>';
+        return;
+    }
+    subjects.forEach(s => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${s.name}</td>
+            <td style="text-align: center;">
+                <button class="btn danger" style="padding: 6px 12px; font-size: 0.85rem;"
+                    onclick="deleteSubject(${s.id})">
+                    <i class="fas fa-trash"></i> Remove
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
 }
 
 async function renderPendingRequests(pending) {
@@ -283,7 +299,7 @@ async function renderPendingRequests(pending) {
 
     const tbody = section.querySelector('tbody');
 
-    if (pending.length === 0) {
+    if (!pending || pending.length === 0) {
         section.style.display = 'none';
         return;
     }
@@ -311,7 +327,7 @@ async function renderPendingRequests(pending) {
 }
 
 async function approveFacultyRequest(email) {
-    const requesterEmail = sessionStorage.getItem('username');
+    const requesterEmail = sessionStorage.getItem('username') || localStorage.getItem('username');
     try {
         const res = await fetch(`${API_BASE_URL}/api/scores/approve-faculty-request`, {
             method: 'PUT',
@@ -325,7 +341,7 @@ async function approveFacultyRequest(email) {
 }
 
 async function declineFacultyRequest(email) {
-    const requesterEmail = sessionStorage.getItem('username');
+    const requesterEmail = sessionStorage.getItem('username') || localStorage.getItem('username');
     try {
         const res = await fetch(`${API_BASE_URL}/api/scores/decline-faculty-request`, {
             method: 'DELETE',
@@ -344,7 +360,7 @@ if (addTeacherForm) {
         e.preventDefault();
         const email = document.getElementById('newTeacherEmail').value;
         const campus = document.getElementById('campusSelect').value;
-        const requesterEmail = sessionStorage.getItem('username');
+        const requesterEmail = sessionStorage.getItem('username') || localStorage.getItem('username');
         try {
             const res = await fetch(`${API_BASE_URL}/api/scores/request-authorize-teacher`, {
                 method: 'POST',
@@ -370,37 +386,17 @@ if (recordForm) {
         const totalItemsInput = document.getElementById('totalItemsInput');
         const studentId = document.getElementById('studentSelect').value;
         const subjectId = document.getElementById('subjectSelect').value;
-        const teacherId = sessionStorage.getItem('userId');
+        const teacherId = sessionStorage.getItem('userId') || localStorage.getItem('userId');
 
         const score = parseInt(scoreInput.value);
         const totalItems = parseInt(totalItemsInput.value);
 
-        if (!teacherId) {
-            alert("Error: Teacher session not found. Please log in again.");
-            return;
-        }
-        if (!studentId) {
-            alert("Please select a student.");
-            return;
-        }
-        if (!subjectId) {
-            alert("Please select a subject.");
-            return;
-        }
-        if (isNaN(score) || score < 0) {
-            alert("Please enter a valid score.");
-            return;
-        }
-        if (isNaN(totalItems) || totalItems < 1) {
-            alert("Please enter a valid total items number.");
-            return;
-        }
-        // FIX: Hard block — do not allow submission if score > total
-        if (score > totalItems) {
-            alert(`Invalid Score: ${score} cannot be greater than Total Items (${totalItems}).`);
-            scoreInput.focus();
-            return;
-        }
+        if (!teacherId) { alert("Error: Teacher session not found. Please log in again."); return; }
+        if (!studentId) { alert("Please select a student."); return; }
+        if (!subjectId) { alert("Please select a subject."); return; }
+        if (isNaN(score) || score < 0) { alert("Please enter a valid score."); return; }
+        if (isNaN(totalItems) || totalItems < 1) { alert("Please enter a valid total items number."); return; }
+        if (score > totalItems) { alert(`Invalid Score: ${score} cannot be greater than Total Items (${totalItems}).`); scoreInput.focus(); return; }
 
         const formData = new FormData();
         formData.append('recorded_by_id', teacherId);
@@ -440,51 +436,32 @@ const authForm = document.getElementById('authorizeStudentForm');
 if (authForm) {
     authForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-
-        // 1. Capture the values
         const email = document.getElementById('authEmail').value;
         const tempName = document.getElementById('authName').value;
-        
-        // 2. Safely get the campus value (handles null if element is missing)
         const campusElement = document.getElementById('authCampus');
         const campus = campusElement ? campusElement.value : "N/A";
 
-        // 3. Validation
-        if (email === sessionStorage.getItem('username')) {
+        if (email === (sessionStorage.getItem('username') || localStorage.getItem('username'))) {
             alert("Error: You cannot authorize yourself as a student.");
             return;
         }
-
-        if (!campus || campus === "") {
-            alert("Please select a campus before authorizing.");
-            return;
-        }
+        if (!campus || campus === "") { alert("Please select a campus before authorizing."); return; }
 
         try {
-            // 4. Send the request
             const res = await fetch(`${API_BASE_URL}/api/auth/authorize-student`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    email: email, 
-                    fullName: tempName, 
-                    campus: campus
-                })
+                body: JSON.stringify({ email, fullName: tempName, campus })
             });
-
             const data = await res.json();
-
             if (res.ok) {
                 alert(data.message || "Student authorized successfully!");
                 authForm.reset();
-                renderEnrollmentTable(); // Refresh the directory list
+                renderEnrollmentTable();
             } else {
                 alert(data.error || "Failed to authorize student.");
             }
-        } catch (err) {
-            console.error("Auth error:", err);
-            alert("Connection error. Please check your internet or backend status.");
-        }
+        } catch (err) { alert("Connection error."); }
     });
 }
 
@@ -493,57 +470,35 @@ if (addSubjectForm) {
     addSubjectForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const subjectName = document.getElementById('subjectName').value;
-
         try {
             const res = await fetch(`${API_BASE_URL}/api/scores/add-subject`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name: subjectName })
             });
-
             const data = await res.json();
-
             if (res.ok) {
                 alert("Subject added successfully!");
                 addSubjectForm.reset();
-                renderSubjectTable(); 
-            } else {
-                alert(data.error || "Failed to add subject.");
-            }
-        } catch (err) {
-            console.error("Subject add error:", err);
-            alert("Connection error.");
-        }
+                renderSubjectTable();
+            } else { alert(data.error || "Failed to add subject."); }
+        } catch (err) { alert("Connection error."); }
     });
 }
 
 async function deleteSubject(id) {
     if (!confirm("Are you sure you want to remove this subject?")) return;
-
     try {
-        const res = await fetch(`${API_BASE_URL}/api/scores/delete-subject/${id}`, {
-            method: 'DELETE'
-        });
-
-        if (res.ok) {
-            alert("Subject removed.");
-            renderSubjectTable();
-        } else {
-            const data = await res.json();
-            alert(data.error || "Delete failed.");
-        }
-    } catch (err) {
-        alert("Error connecting to server.");
-    }
+        const res = await fetch(`${API_BASE_URL}/api/scores/delete-subject/${id}`, { method: 'DELETE' });
+        if (res.ok) { alert("Subject removed."); renderSubjectTable(); }
+        else { const data = await res.json(); alert(data.error || "Delete failed."); }
+    } catch (err) { alert("Error connecting to server."); }
 }
-
-window.deleteSubject = deleteSubject;
 
 window.addEventListener('load', () => {
     if (document.getElementById('teacherProfileForm')) {
         displayProfileInfo();
         document.getElementById('saveTeacherProfile')?.addEventListener('click', saveProfileChanges);
-        
         document.getElementById('resetTeacherProfile')?.addEventListener('click', () => {
             if (confirm("Discard all unsaved changes?")) {
                 displayProfileInfo();
@@ -552,17 +507,26 @@ window.addEventListener('load', () => {
             }
         });
     }
-    
-    loadDropdowns();
-    updateDashboardStats();
 
-    if (document.getElementById('scoresTable')) renderScoresTables();
-    if (document.getElementById('studentsTable')) renderActiveStudentTable();
-    if (document.getElementById('subjectsTable')) renderSubjectTable();
-    if (document.getElementById('facultyTable')) renderFacultyTable();
-    if (document.getElementById('enrollmentTable')) renderEnrollmentTable(); 
+    // Stagger API calls to avoid rate limiting
+    setTimeout(() => loadDropdowns(), 0);
+    setTimeout(() => updateDashboardStats(), 200);
+    setTimeout(() => {
+        if (document.getElementById('scoresTable')) renderScoresTables();
+    }, 400);
+    setTimeout(() => {
+        if (document.getElementById('studentsTable')) renderActiveStudentTable();
+    }, 600);
+    setTimeout(() => {
+        if (document.getElementById('subjectsTable')) renderSubjectTable();
+    }, 800);
+    setTimeout(() => {
+        if (document.getElementById('facultyTable')) renderFacultyTable();
+    }, 1000);
+    setTimeout(() => {
+        if (document.getElementById('enrollmentTable')) renderEnrollmentTable();
+    }, 1200);
 });
-
 
 async function editScore(id, isLocked) {
     if (isLocked) return alert("This record is finalized and cannot be edited!");
@@ -591,12 +555,12 @@ async function lockScore(id, isLocked) {
 async function updateDashboardStats() {
     try {
         const [scores, users, subjects] = await Promise.all([
-            fetch(`${API_BASE_URL}/api/scores/get-records`).then(r => r.json()),
-            fetch(`${API_BASE_URL}/api/auth/profile?all=true`).then(r => r.json()),
-            fetch(`${API_BASE_URL}/api/scores/get-subjects`).then(r => r.json())
+            safeFetchArray(`${API_BASE_URL}/api/scores/get-records`),
+            safeFetchArray(`${API_BASE_URL}/api/auth/profile?all=true`),
+            safeFetchArray(`${API_BASE_URL}/api/scores/get-subjects`)
         ]);
         const approvedStudents = users.filter(u => u.role === 'student' && u.is_approved === 1);
-        
+
         if (document.getElementById('totalRecords')) document.getElementById('totalRecords').innerText = scores.length;
         if (document.getElementById('totalStudents')) document.getElementById('totalStudents').innerText = approvedStudents.length;
         if (document.getElementById('totalSubjects')) document.getElementById('totalSubjects').innerText = subjects.length;
@@ -606,135 +570,112 @@ async function updateDashboardStats() {
 async function loadDropdowns() {
     const studentSelect = document.getElementById('studentSelect');
     const subjectSelect = document.getElementById('subjectSelect');
-    
-    try {
-        if (studentSelect) {
-            const users = await fetch(`${API_BASE_URL}/api/auth/profile?all=true`).then(r => r.json());
-            const activeStudents = users.filter(u => u.role === 'student' && Number(u.is_approved) === 1);
-            studentSelect.innerHTML = '<option value="" disabled selected>-- Results --</option>' + 
-                activeStudents.map(s => `<option value="${s.id}">${s.full_name}</option>`).join('');
-        }
 
-        if (subjectSelect) {
-            const subjects = await fetch(`${API_BASE_URL}/api/scores/get-subjects`).then(r => r.json());
-            subjectSelect.innerHTML = '<option value="" disabled selected>-- Results --</option>' + 
-                subjects.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
-        }
-    } catch (e) { 
-        console.error("Error loading searchable data:", e); 
+    if (studentSelect) {
+        const users = await safeFetchArray(`${API_BASE_URL}/api/auth/profile?all=true`);
+        const activeStudents = users.filter(u => u.role === 'student' && Number(u.is_approved) === 1);
+        studentSelect.innerHTML = '<option value="" disabled selected>-- Results --</option>' +
+            activeStudents.map(s => `<option value="${s.id}">${s.full_name}</option>`).join('');
+    }
+
+    if (subjectSelect) {
+        const subjects = await safeFetchArray(`${API_BASE_URL}/api/scores/get-subjects`);
+        subjectSelect.innerHTML = '<option value="" disabled selected>-- Results --</option>' +
+            subjects.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
     }
 
     setupSearchableDropdown('studentSearch', 'studentSelect');
     setupSearchableDropdown('subjectSearch', 'subjectSelect');
 }
 
-
 async function renderEnrollmentTable() {
     const tbody = document.querySelector('#enrollmentTable tbody');
     if (!tbody) return;
 
-    try {
-        const res = await fetch(`${API_BASE_URL}/api/auth/profile?all=true`);
-        const users = await res.json();
-        
-        const pendingApproval = users.filter(u => u.role === 'student' && u.is_approved === 0);
+    const users = await safeFetchArray(`${API_BASE_URL}/api/auth/profile?all=true`);
+    const pendingApproval = users.filter(u => u.role === 'student' && u.is_approved === 0);
 
-        if (pendingApproval.length === 0) {
-            tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No pending authorizations.</td></tr>';
-            return;
-        }
+    if (pendingApproval.length === 0) {
+        tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No pending authorizations.</td></tr>';
+        return;
+    }
 
-tbody.innerHTML = pendingApproval.map(s => `
-    <tr>
-        <td>
-            <span class="status-badge ${s.is_verified ? 'active' : 'pending'}">
-                ${s.is_verified ? 'Pending Approval' : 'Authorized'}
-            </span>
-        </td>
-        <td>${esc(s.username)}</td>
-<td>${esc(s.full_name)}</td>
-<td>${esc(s.campus) || '---'}</td>
-        <td>
-            <div style="display: flex; gap: 8px; align-items: center;">
-                <button class="btn" style="padding: 6px 12px; font-size: 0.85rem;"
-                    onclick="approveStudent(${s.id})">
-                    <i class="fas fa-check"></i> Approve
-                </button>
-                <button class="btn danger" style="padding: 6px 12px; font-size: 0.85rem;"
-                    onclick="handleRemoveStudent(${parseInt(s.id)}, '${esc(s.full_name)}')">
-                    <i class="fas fa-times"></i> Decline
-                </button>
-            </div>
-        </td>
-    </tr>
-`).join('');
-    } catch (err) { console.error(err); }
+    tbody.innerHTML = pendingApproval.map(s => `
+        <tr>
+            <td>
+                <span class="status-badge ${s.is_verified ? 'active' : 'pending'}">
+                    ${s.is_verified ? 'Pending Approval' : 'Authorized'}
+                </span>
+            </td>
+            <td>${esc(s.username)}</td>
+            <td>${esc(s.full_name)}</td>
+            <td>${esc(s.campus) || '---'}</td>
+            <td>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <button class="btn" style="padding: 6px 12px; font-size: 0.85rem;"
+                        onclick="approveStudent(${s.id})">
+                        <i class="fas fa-check"></i> Approve
+                    </button>
+                    <button class="btn danger" style="padding: 6px 12px; font-size: 0.85rem;"
+                        onclick="handleRemoveStudent(${parseInt(s.id)}, '${esc(s.full_name)}')">
+                        <i class="fas fa-times"></i> Decline
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
 }
 
 async function renderActiveStudentTable() {
     const tbody = document.querySelector('#studentsTable tbody');
-    if (!tbody) return; 
+    if (!tbody) return;
 
-    try {
-        const res = await fetch(`${API_BASE_URL}/api/auth/profile?all=true`);
-        const users = await res.json();
-        
-        const activeStudents = users.filter(u => u.role === 'student' && Number(u.is_approved) === 1);
+    const users = await safeFetchArray(`${API_BASE_URL}/api/auth/profile?all=true`);
+    const activeStudents = users.filter(u => u.role === 'student' && Number(u.is_approved) === 1);
 
-        const today = new Date().toDateString();
-        const todayCount = activeStudents.filter(s => {
-            return s.date_created && new Date(s.date_created).toDateString() === today;
-        }).length;
+    const today = new Date().toDateString();
+    const todayCount = activeStudents.filter(s => s.date_created && new Date(s.date_created).toDateString() === today).length;
 
-        if (document.getElementById('totalStudentCount')) 
-            document.getElementById('totalStudentCount').innerText = activeStudents.length;
-        
-        if (document.getElementById('todaySignupCount'))
-            document.getElementById('todaySignupCount').innerText = todayCount;
+    if (document.getElementById('totalStudentCount')) document.getElementById('totalStudentCount').innerText = activeStudents.length;
+    if (document.getElementById('todaySignupCount')) document.getElementById('todaySignupCount').innerText = todayCount;
 
-        if (activeStudents.length === 0) {
-            tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No active students yet.</td></tr>';
-            return;
-        }
+    if (activeStudents.length === 0) {
+        tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No active students yet.</td></tr>';
+        return;
+    }
 
-        tbody.innerHTML = activeStudents.map(s => {
-            const statusBadge = s.is_verified 
-                ? `<span class="status-badge active">ACTIVE</span>`
-                : `<span class="status-badge pending">AUTHORIZED</span>`;
-
-            return `
-                <tr>
-                    <td>${statusBadge}</td>
-                    <td>${esc(s.username)}</td>
-<td>${esc(s.full_name)}</td>
-<td>${esc(s.campus) || 'N/A'}</td>
-                    <td style="text-align: center;">
-                        <div style="display: flex; gap: 8px; justify-content: center; align-items: center;">
-                            <button class="btn outline" style="padding: 6px 12px; font-size: 0.85rem;"
-                                onclick="viewPerformance('${s.username}')">
-                                <i class="fas fa-chart-bar"></i> View
-                            </button>
-                            <button class="btn danger" style="padding: 6px 12px; font-size: 0.85rem;"
-                                onclick="handleRemoveStudent(${s.id}, '${s.full_name}')">
-                                <i class="fas fa-user-minus"></i> Drop
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            `;
-        }).join('');
-    } catch (err) { console.error(err); }
+    tbody.innerHTML = activeStudents.map(s => {
+        const statusBadge = s.is_verified
+            ? `<span class="status-badge active">ACTIVE</span>`
+            : `<span class="status-badge pending">AUTHORIZED</span>`;
+        return `
+            <tr>
+                <td>${statusBadge}</td>
+                <td>${esc(s.username)}</td>
+                <td>${esc(s.full_name)}</td>
+                <td>${esc(s.campus) || 'N/A'}</td>
+                <td style="text-align: center;">
+                    <div style="display: flex; gap: 8px; justify-content: center; align-items: center;">
+                        <button class="btn outline" style="padding: 6px 12px; font-size: 0.85rem;"
+                            onclick="viewPerformance('${s.username}')">
+                            <i class="fas fa-chart-bar"></i> View
+                        </button>
+                        <button class="btn danger" style="padding: 6px 12px; font-size: 0.85rem;"
+                            onclick="handleRemoveStudent(${s.id}, '${s.full_name}')">
+                            <i class="fas fa-user-minus"></i> Drop
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
 }
 
 async function approveStudent(id) {
     if (!confirm("Approve this student for enrollment?")) return;
     try {
         const res = await fetch(`${API_BASE_URL}/api/auth/approve-student/${id}`, { method: 'POST' });
-        if (res.ok) {
-            alert("Student approved!");
-            renderEnrollmentTable();
-            updateDashboardStats();
-        }
+        if (res.ok) { alert("Student approved!"); renderEnrollmentTable(); updateDashboardStats(); }
     } catch (err) { alert("Error approving student."); }
 }
 
@@ -742,16 +683,13 @@ async function handleRemoveStudent(id, name) {
     if (!confirm(`Are you sure you want to remove ${name}?`)) return;
     try {
         const res = await fetch(`${API_BASE_URL}/api/auth/user/${id}`, { method: 'DELETE' });
-        if (res.ok) {
-            alert("Removed successfully");
-            location.reload(); 
-        }
+        if (res.ok) { alert("Removed successfully"); location.reload(); }
     } catch (err) { alert("Error removing user."); }
 }
 
 async function removeFaculty(email) {
     if (!confirm(`Remove ${email} from the faculty list?`)) return;
-    const requesterEmail = sessionStorage.getItem('username');
+    const requesterEmail = sessionStorage.getItem('username') || localStorage.getItem('username');
     try {
         const res = await fetch(`${API_BASE_URL}/api/scores/remove-faculty`, {
             method: 'DELETE',
@@ -759,18 +697,14 @@ async function removeFaculty(email) {
             body: JSON.stringify({ email, requesterEmail })
         });
         const data = await res.json();
-        if (res.ok) {
-            alert("Faculty member removed.");
-            renderFacultyTable();
-        } else {
-            alert(data.error || "Failed to remove.");
-        }
+        if (res.ok) { alert("Faculty member removed."); renderFacultyTable(); }
+        else alert(data.error || "Failed to remove.");
     } catch (err) { alert("Connection error."); }
 }
 
 async function promoteToAdmin(email) {
     if (!confirm(`Promote ${email} to Admin?`)) return;
-    const requesterEmail = sessionStorage.getItem('username');
+    const requesterEmail = sessionStorage.getItem('username') || localStorage.getItem('username');
     try {
         const res = await fetch(`${API_BASE_URL}/api/scores/update-faculty-role`, {
             method: 'PUT',
@@ -778,18 +712,14 @@ async function promoteToAdmin(email) {
             body: JSON.stringify({ email, is_admin: 1, requesterEmail })
         });
         const data = await res.json();
-        if (res.ok) {
-            alert("Promoted to Admin!");
-            renderFacultyTable();
-        } else {
-            alert(data.error || "Failed to promote.");
-        }
+        if (res.ok) { alert("Promoted to Admin!"); renderFacultyTable(); }
+        else alert(data.error || "Failed to promote.");
     } catch (err) { alert("Connection error."); }
 }
 
 async function demoteToTeacher(email) {
     if (!confirm(`Demote ${email} back to Teacher?`)) return;
-    const requesterEmail = sessionStorage.getItem('username');
+    const requesterEmail = sessionStorage.getItem('username') || localStorage.getItem('username');
     try {
         const res = await fetch(`${API_BASE_URL}/api/scores/update-faculty-role`, {
             method: 'PUT',
@@ -797,12 +727,8 @@ async function demoteToTeacher(email) {
             body: JSON.stringify({ email, is_admin: 0, requesterEmail })
         });
         const data = await res.json();
-        if (res.ok) {
-            alert("Demoted to Teacher.");
-            renderFacultyTable();
-        } else {
-            alert(data.error || "Failed to demote.");
-        }
+        if (res.ok) { alert("Demoted to Teacher."); renderFacultyTable(); }
+        else alert(data.error || "Failed to demote.");
     } catch (err) { alert("Connection error."); }
 }
 
@@ -818,15 +744,8 @@ avatarInput?.addEventListener('change', function(e) {
         reader.onload = function(event) {
             imageToCrop.src = event.target.result;
             cropperModal.style.display = 'flex';
-            
-            if (cropper) cropper.destroy(); 
-            
-            cropper = new Cropper(imageToCrop, {
-                aspectRatio: 1,
-                viewMode: 1,
-                dragMode: 'move',
-                autoCropArea: 0.8
-            });
+            if (cropper) cropper.destroy();
+            cropper = new Cropper(imageToCrop, { aspectRatio: 1, viewMode: 1, dragMode: 'move', autoCropArea: 0.8 });
         };
         reader.readAsDataURL(files[0]);
     }
@@ -841,51 +760,22 @@ document.addEventListener('click', (e) => {
     }
 });
 
-function applyFilter(tableId, category, value) {
-    const table = document.querySelector(tableId);
-    const rows = table.querySelectorAll('tbody tr:not(.empty-row)');
-    
-    rows.forEach(row => {
-        let textToMatch = "";
-        
-        if (category === 'campus') textToMatch = row.children[3].innerText;
-        if (category === 'role') textToMatch = row.children[2].innerText;
-        if (category === 'category') textToMatch = row.children[5].innerText;
-        if (category === 'reset') { row.style.display = ""; return; }
-
-        if (value === 'all' || textToMatch.toLowerCase().includes(value.toLowerCase())) {
-            row.style.display = "";
-        } else {
-            row.style.display = "none";
-        }
-    });
-}
-
 function applyFilter(tableId, type, value) {
     const table = document.querySelector(tableId);
     if (!table) return;
-
     const rows = table.querySelectorAll('tbody tr:not(.empty-row)');
-
     rows.forEach(row => {
-        if (type === 'reset') {
-            row.style.display = '';
-            return;
-        }
-
+        if (type === 'reset') { row.style.display = ''; return; }
         let textToMatch = '';
-
         if (type === 'campus') textToMatch = row.children[1]?.innerText || '';
         if (type === 'role') textToMatch = row.children[2]?.innerText || '';
         if (type === 'category') textToMatch = row.children[5]?.innerText || '';
-
         if (value === 'all' || textToMatch.toLowerCase().includes(value.toLowerCase())) {
             row.style.display = '';
         } else {
             row.style.display = 'none';
         }
     });
-
     document.querySelectorAll('.filter-menu').forEach(m => m.classList.remove('active'));
 }
 
@@ -894,61 +784,36 @@ document.querySelectorAll('.table-search').forEach(input => {
         const value = this.value.toLowerCase();
         const tableId = this.getAttribute('data-table');
         const rows = document.querySelectorAll(`${tableId} tbody tr:not(.empty-row)`);
-        
-        rows.forEach(row => {
-            row.style.display = row.innerText.toLowerCase().includes(value) ? "" : "none";
-        });
+        rows.forEach(row => { row.style.display = row.innerText.toLowerCase().includes(value) ? "" : "none"; });
     });
 });
 
 document.getElementById('cancelCrop')?.addEventListener('click', () => {
     cropperModal.style.display = 'none';
-    avatarInput.value = ""; 
+    if (avatarInput) avatarInput.value = "";
 });
 
 document.getElementById('confirmCrop')?.addEventListener('click', () => {
     if (!cropper) return;
-
     const canvas = cropper.getCroppedCanvas({ width: 400, height: 400 });
-
     canvas.toBlob(async (blob) => {
         const formData = new FormData();
         formData.append('profile_photo', blob, 'avatar.jpg');
-        
-        const email = sessionStorage.getItem('username');
-        if (!email) {
-            alert("Session expired. Please sign in again.");
-            return;
-        }
+        const email = sessionStorage.getItem('username') || localStorage.getItem('username');
+        if (!email) { alert("Session expired. Please sign in again."); return; }
         formData.append('email', email);
-
         try {
-            const res = await fetch(`${API_BASE_URL}/api/auth/profile/upload-photo`, {
-                method: 'POST',
-                body: formData 
-            });
-
+            const res = await fetch(`${API_BASE_URL}/api/auth/profile/upload-photo`, { method: 'POST', body: formData });
             if (res.ok) {
-                const data = await res.json();
                 alert("Profile picture updated!");
                 cropperModal.style.display = 'none';
-                avatarInput.value = ""; 
-                displayProfileInfo(); 
+                if (avatarInput) avatarInput.value = "";
+                displayProfileInfo();
             } else {
-                const contentType = res.headers.get("content-type");
-                if (contentType && contentType.includes("application/json")) {
-                    const errData = await res.json();
-                    alert("Upload Error: " + errData.error);
-                } else {
-                    const fullError = await res.text();
-                    console.error("Server crashed:", fullError);
-                    alert("Server Error (500): The folder path is still incorrect or inaccessible.");
-                }
+                const errData = await res.json().catch(() => ({}));
+                alert("Upload Error: " + (errData.error || "Unknown error"));
             }
-        } catch (err) {
-            console.error("Upload error:", err);
-            alert("Connection error to backend. Check your terminal for errors.");
-        }
+        } catch (err) { alert("Connection error to backend."); }
     }, 'image/jpeg', 0.9);
 });
 
@@ -957,71 +822,46 @@ function setupSearchableDropdown(inputId, selectId) {
     const select = document.getElementById(selectId);
     if (!input || !select) return;
 
-    input.addEventListener('input', function () {
+    input.addEventListener('input', function() {
         const filter = this.value.toLowerCase().trim();
         const options = select.options;
         let hasResults = false;
-
-        if (!filter) {
-            select.style.display = 'none';
-            select.value = '';
-            return;
-        }
-
+        if (!filter) { select.style.display = 'none'; select.value = ''; return; }
         for (let i = 0; i < options.length; i++) {
             if (options[i].disabled) continue;
             const match = options[i].text.toLowerCase().includes(filter);
             options[i].style.display = match ? '' : 'none';
             if (match) hasResults = true;
         }
-
         select.style.display = hasResults ? 'block' : 'none';
     });
 
-    select.addEventListener('change', function () {
+    select.addEventListener('change', function() {
         const selected = this.options[this.selectedIndex];
-        if (selected && selected.value) {
-            input.value = selected.text;
-            select.style.display = 'none';
-        }
+        if (selected && selected.value) { input.value = selected.text; select.style.display = 'none'; }
     });
 
-    document.addEventListener('mousedown', function (e) {
-        if (!input.contains(e.target) && !select.contains(e.target)) {
-            select.style.display = 'none';
-        }
+    document.addEventListener('mousedown', function(e) {
+        if (!input.contains(e.target) && !select.contains(e.target)) select.style.display = 'none';
     });
 
-    input.addEventListener('focus', function () {
-        if (this.value.trim()) {
-            this.dispatchEvent(new Event('input'));
-        }
+    input.addEventListener('focus', function() {
+        if (this.value.trim()) this.dispatchEvent(new Event('input'));
     });
-}   
+}
 
 function validateScore(input) {
     const max = parseInt(document.getElementById('totalItemsInput').value) || 0;
     const val = parseInt(input.value) || 0;
-    if (max > 0 && val > max) {
-        input.style.borderColor = '#dc3545';
-        input.title = `Score cannot exceed ${max}`;
-    } else {
-        input.style.borderColor = '';
-        input.title = '';
-    }
+    input.style.borderColor = (max > 0 && val > max) ? '#dc3545' : '';
+    input.title = (max > 0 && val > max) ? `Score cannot exceed ${max}` : '';
 }
 
 async function viewPerformance(email) {
     try {
-        const res = await fetch(`${API_BASE_URL}/api/scores/get-records?email=${encodeURIComponent(email)}`);
-        const records = await res.json();
+        const records = await safeFetchArray(`${API_BASE_URL}/api/scores/get-records?email=${encodeURIComponent(email)}`);
         const finalized = records.filter(r => r.is_finalized === 1);
-
-        if (finalized.length === 0) {
-            alert(`No finalized records found for:\n${email}`);
-            return;
-        }
-
+        if (finalized.length === 0) { alert(`No finalized records found for:\n${email}`); return; }
         const totalEarned = finalized.reduce((s, r) => s + Number(r.score), 0);
         const totalPossible = finalized.reduce((s, r) => s + Number(r.total_items || 0), 0);
         const avg = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFixed(1) : '0.0';
@@ -1033,31 +873,15 @@ async function viewPerformance(email) {
             const pct = possible > 0 ? ((earned / possible) * 100).toFixed(1) : '0.0';
             return `  • ${sub}: ${earned}/${possible} (${pct}%)`;
         }).join('\n');
-
-        alert(
-            `Performance Summary\n` +
-            `Student: ${email}\n` +
-            `─────────────────────\n` +
-            `Total Records: ${finalized.length}\n` +
-            `Overall Average: ${avg}%\n\n` +
-            `By Subject:\n${bySubject}`
-        );
-    } catch (err) {
-        alert("Could not load performance data. Please try again.");
-        console.error(err);
-    }
+        alert(`Performance Summary\nStudent: ${email}\n─────────────────────\nTotal Records: ${finalized.length}\nOverall Average: ${avg}%\n\nBy Subject:\n${bySubject}`);
+    } catch (err) { alert("Could not load performance data."); }
 }
 
-// Hamburger menu toggle
 document.getElementById('hamburger')?.addEventListener('click', () => {
     document.querySelector('nav').classList.toggle('active');
 });
-
-// Close nav when a link is clicked (mobile)
 document.querySelectorAll('nav a').forEach(link => {
-    link.addEventListener('click', () => {
-        document.querySelector('nav').classList.remove('active');
-    });
+    link.addEventListener('click', () => { document.querySelector('nav').classList.remove('active'); });
 });
 
 window.viewPerformance = viewPerformance;
@@ -1073,3 +897,5 @@ window.promoteToAdmin = promoteToAdmin;
 window.demoteToTeacher = demoteToTeacher;
 window.approveFacultyRequest = approveFacultyRequest;
 window.declineFacultyRequest = declineFacultyRequest;
+window.deleteSubject = deleteSubject;
+window.applyFilter = applyFilter;
