@@ -20,7 +20,7 @@ function esc(str) {
         .replace(/'/g, '&#x27;');
 }
 
-// Helper: safe fetch that always returns an array
+
 async function safeFetchArray(url) {
     try {
         const res = await fetch(url);
@@ -508,7 +508,7 @@ window.addEventListener('load', () => {
         });
     }
 
-    // Stagger API calls to avoid rate limiting
+    
     setTimeout(() => loadDropdowns(), 0);
     setTimeout(() => updateDashboardStats(), 200);
     setTimeout(() => {

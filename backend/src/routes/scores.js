@@ -156,7 +156,7 @@ router.delete('/remove-faculty', async (req, res) => {
             return res.status(403).json({ error: "Teachers cannot remove admins." });
         }
 
-        // Remove from whitelist
+        
         await db.execute("DELETE FROM teacher_whitelist WHERE email = ?", [email]);
 
         await db.execute(

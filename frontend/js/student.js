@@ -4,7 +4,7 @@
     let cropperModal;
 
     window.onload = () => {
-        // Initialize cropper elements after DOM is ready
+        
         avatarInput = document.getElementById('studentAvatar');
         imageToCrop = document.getElementById('imageToCrop');
         cropperModal = document.getElementById('cropperModal');
@@ -109,7 +109,7 @@ function esc(str) {
         const email = sessionStorage.getItem('username');
         console.log("Loading profile for:", email);
 
-        // We check for the form, but if it's null, we'll try to find the fields directly
+        
         const profileForm = document.getElementById('studentProfileForm');
         if (!email) return;
 
@@ -119,7 +119,7 @@ function esc(str) {
             console.log("User data:", user); 
             
             if (res.ok) {
-                // Use a small delay to ensure the DOM elements are fully ready to accept values
+                
                 setTimeout(() => {
                     const nameField = document.getElementById('studentFullName');
                     const emailField = document.getElementById('studentEmail');
@@ -140,7 +140,7 @@ function esc(str) {
                         avatarWrapper.innerHTML = `<img src="${src}" referrerpolicy="no-referrer" 
                             style="width:100%; height:100%; object-fit:cover; border-radius:12px;">`;
                     } else if (avatarWrapper) {
-                        // Added a fallback icon if no photo exists, so it's not a red square
+                        
                         avatarWrapper.innerHTML = `<i class="fas fa-user-circle" style="font-size: 8rem; color: #ccc;"></i>`;
                     }
                 }, 100); 
@@ -298,12 +298,12 @@ function esc(str) {
         });
     });
 
-    // Mobile Hamburger Toggle
+    
     document.getElementById('hamburger')?.addEventListener('click', () => {
         document.querySelector('nav').classList.toggle('active');
     });
 
-    // Close menu when clicking a link
+    
     document.querySelectorAll('nav a').forEach(link => {
         link.addEventListener('click', () => {
             document.querySelector('nav').classList.remove('active');
